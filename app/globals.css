@@ -1,15 +1,14 @@
 /* Bootstrap CSS from npm */
-@import 'bootstrap/dist/css/bootstrap.min.css';
+@import "bootstrap/dist/css/bootstrap.min.css";
 
 /* Flaticon */
-@import './flaticon.css';
+@import "./flaticon.css";
 
 /* Common CSS */
-@import './common.css';
+@import "./common.css";
 
 /* Main CSS */
-@import './main.css';
+@import "./main.css";
 
 /* Responsive CSS */
-@import './responsive.css';
-
+@import "./responsive.css";
