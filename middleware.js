@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/utils/auth";
-import { rateLimit } from "@/lib/utils/rateLimit";
 
 // Paths that do NOT require authentication
 const publicPaths = [
@@ -16,39 +15,6 @@ const protectedPaths = ["/feed"];
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
-
-  // Apply rate limiting to API routes
-  if (pathname.startsWith("/api/")) {
-    const ip =
-      request.headers.get("x-forwarded-for") ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    // Stricter rate limit for auth endpoints
-    if (pathname.startsWith("/api/auth/")) {
-      const { allowed } = rateLimit(`auth_${ip}`, 10, 60000); // 10 requests per minute
-      if (!allowed) {
-        return Response.json(
-          {
-            success: false,
-            error: "Too many requests. Please try again later.",
-          },
-          { status: 429 },
-        );
-      }
-    } else {
-      const { allowed } = rateLimit(`api_${ip}`, 60, 60000); // 60 requests per minute
-      if (!allowed) {
-        return Response.json(
-          {
-            success: false,
-            error: "Too many requests. Please try again later.",
-          },
-          { status: 429 },
-        );
-      }
-    }
-  }
 
   // Allow public paths
   if (publicPaths.some((p) => pathname.startsWith(p))) {
