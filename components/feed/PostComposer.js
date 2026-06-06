@@ -7,13 +7,28 @@ import PostComposerActionsMobile from "./PostComposerActionsMobile";
 import { useFeedContext } from "../common/FeedContext";
 
 function PostComposer() {
-  const { createPost } = useFeedContext();
+  const { setPosts } = useFeedContext();
   const [content, setContent] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const clearFile = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSelectedFile(null);
+    setPreviewUrl(null);
+  };
 
   const handleSubmit = async () => {
     const trimmed = content.trim();
@@ -26,49 +41,29 @@ function PostComposer() {
     setError("");
 
     try {
-      let imageUrl = null;
+      const formData = new FormData();
+      formData.append("content", trimmed);
+      formData.append("isPrivate", isPrivate);
+      if (selectedFile) formData.append("file", selectedFile);
 
-      // Upload image if selected
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData?.success) {
-          imageUrl = uploadData.data.url;
-        } else {
-          setError("Image upload failed");
-          setSubmitting(false);
-          return;
-        }
-      }
-
-      const success = await createPost({
-        content: trimmed,
-        imageUrl,
-        isPrivate,
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        body: formData,
       });
+      const data = await res.json();
 
-      if (success) {
+      if (data?.success) {
+        setPosts((prev) => [data.data.post, ...prev]);
         setContent("");
-        setSelectedFile(null);
+        clearFile();
         setIsPrivate(false);
       } else {
-        setError("Failed to create post");
+        setError(data?.error || "Failed to create post");
       }
     } catch {
       setError("Network error. Please try again.");
     }
-
     setSubmitting(false);
-  };
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file) setSelectedFile(file);
   };
 
   return (
@@ -137,10 +132,39 @@ function PostComposer() {
         style={{ display: "none" }}
       />
 
-      {selectedFile && (
-        <p style={{ fontSize: "12px", color: "#0d6efd", marginTop: "6px" }}>
-          📎 {selectedFile.name}
-        </p>
+      {/* Image preview */}
+      {previewUrl && (
+        <div style={{ position: "relative", marginTop: "10px", display: "inline-block" }}>
+          <Image
+            src={previewUrl}
+            alt="Preview"
+            width={200}
+            height={150}
+            style={{ borderRadius: "8px", objectFit: "cover" }}
+            unoptimized
+          />
+          <button
+            onClick={clearFile}
+            style={{
+              position: "absolute",
+              top: "-8px",
+              right: "-8px",
+              background: "#fff",
+              border: "1px solid #ddd",
+              borderRadius: "50%",
+              width: "24px",
+              height: "24px",
+              cursor: "pointer",
+              fontSize: "14px",
+              lineHeight: "22px",
+              textAlign: "center",
+              padding: 0,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+            }}
+          >
+            ✕
+          </button>
+        </div>
       )}
 
       {error && (

@@ -1,12 +1,13 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
+import cloudinary from "@/lib/cloudinary";
 import {
   getCurrentUserId,
   successResponse,
   errorResponse,
 } from "@/lib/utils/auth";
 
-// POST - Create a new post
+// POST - Create a new post (supports FormData with optional file)
 export async function POST(request) {
   try {
     const userId = await getCurrentUserId();
@@ -16,21 +17,53 @@ export async function POST(request) {
 
     await dbConnect();
 
-    const body = await request.json();
-    const { content, imageUrl, isPrivate } = body;
+    const formData = await request.formData();
+    const content = formData.get("content")?.trim() || "";
+    const isPrivate = formData.get("isPrivate") === "true";
+    const file = formData.get("file");
 
-    if (!content && !imageUrl) {
+    if (!content && !file) {
       return errorResponse("Post must have either text content or an image");
+    }
+
+    let imageUrl = null;
+
+    // Upload file to Cloudinary if provided
+    if (file && file.size > 0) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const fileType = file.type;
+      const resourceType = fileType.startsWith("video/") ? "video" : "image";
+
+      const result = await new Promise((resolve, reject) => {
+        const { Readable } = require("stream");
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "buddy-script/posts",
+            resource_type: resourceType,
+            transformation:
+              resourceType === "image"
+                ? [{ quality: "auto", fetch_format: "auto" }]
+                : undefined,
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        Readable.from(buffer).pipe(uploadStream);
+      });
+
+      imageUrl = result.secure_url;
     }
 
     const post = await Post.create({
       author: userId,
-      content: content?.trim() || "",
-      imageUrl: imageUrl || null,
-      isPrivate: Boolean(isPrivate),
+      content,
+      imageUrl,
+      isPrivate,
     });
 
-    // Populate author info
     await post.populate("author", "firstName lastName");
 
     return successResponse({ post }, 201);

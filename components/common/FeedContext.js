@@ -227,6 +227,7 @@ export function FeedProvider({ children }) {
         closeAllDropdowns,
         currentUser,
         posts,
+        setPosts,
         initialLoading,
         loadingMore,
         hasMore,

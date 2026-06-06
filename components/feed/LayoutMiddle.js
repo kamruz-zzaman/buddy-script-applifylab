@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useInView } from "react-intersection-observer";
 import StoriesDesktop from "./StoriesDesktop";
 import StoriesMobile from "./StoriesMobile";

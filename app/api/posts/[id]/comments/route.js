@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
 import Comment from "@/lib/models/Comment";
+import cloudinary from "@/lib/cloudinary";
 import {
   getCurrentUserId,
   successResponse,
@@ -78,7 +79,7 @@ export async function GET(request, { params }) {
   }
 }
 
-// POST - Create a new comment or reply
+// POST - Create a new comment or reply (supports FormData with optional file)
 export async function POST(request, { params }) {
   try {
     const userId = await getCurrentUserId();
@@ -89,10 +90,12 @@ export async function POST(request, { params }) {
     await dbConnect();
 
     const { id: postId } = await params;
-    const body = await request.json();
-    const { content, parentId, imageUrl } = body;
+    const formData = await request.formData();
+    const content = formData.get("content")?.trim() || "";
+    const parentId = formData.get("parentId") || null;
+    const file = formData.get("file");
 
-    if ((!content || !content.trim()) && !imageUrl) {
+    if (!content && !file) {
       return errorResponse("Comment must have content or an image");
     }
 
@@ -113,11 +116,37 @@ export async function POST(request, { params }) {
       }
     }
 
+    let imageUrl = null;
+
+    // Upload file if provided
+    if (file && file.size > 0) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const result = await new Promise((resolve, reject) => {
+        const { Readable } = require("stream");
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "buddy-script/comments",
+            resource_type: "image",
+            transformation: [{ quality: "auto", fetch_format: "auto" }],
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        Readable.from(buffer).pipe(uploadStream);
+      });
+
+      imageUrl = result.secure_url;
+    }
+
     const comment = await Comment.create({
       post: postId,
       author: userId,
-      content: content?.trim() || "",
-      imageUrl: imageUrl || null,
+      content,
+      imageUrl,
       parent: parentId || null,
     });
 
