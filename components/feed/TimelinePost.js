@@ -39,6 +39,7 @@ function TimelinePost({ post }) {
   const [showReactions, setShowReactions] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(post?.commentsCount || 0);
   const [commentRefreshKey, setCommentRefreshKey] = useState(0);
+  const [optimisticComment, setOptimisticComment] = useState(null);
   const dropdownRef = useRef(null);
   const reactionRef = useRef(null);
   const reactionTimeout = useRef(null);
@@ -80,9 +81,10 @@ function TimelinePost({ post }) {
     if (confirm("Delete this post?")) await deletePost(post._id);
   };
 
-  const onCommentAdded = useCallback(() => {
+  const onCommentAdded = useCallback((newComment) => {
     setLocalCommentsCount((c) => c + 1);
     incrementCommentsCount(post._id);
+    setOptimisticComment({ comment: newComment, ts: Date.now() });
     setCommentRefreshKey((k) => k + 1);
   }, [post._id, incrementCommentsCount]);
 
@@ -262,7 +264,7 @@ function TimelinePost({ post }) {
       {showComments && (
         <>
           <CommentBox postId={post._id} onCommentAdded={onCommentAdded} />
-          <CommentSection postId={post._id} refreshKey={commentRefreshKey} />
+          <CommentSection postId={post._id} refreshKey={commentRefreshKey} optimisticComment={optimisticComment} />
         </>
       )}
     </div>

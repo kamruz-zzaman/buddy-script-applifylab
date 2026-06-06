@@ -178,7 +178,7 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   );
 }
 
-export default function CommentSection({ postId, refreshKey }) {
+export default function CommentSection({ postId, refreshKey, optimisticComment }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -203,6 +203,17 @@ export default function CommentSection({ postId, refreshKey }) {
   const handleReplyAdded = useCallback(() => {
     fetchComments();
   }, [fetchComments]);
+
+  // Add optimistic comment immediately (deduplicated by _id)
+  useEffect(() => {
+    if (optimisticComment?.comment) {
+      setComments((prev) => {
+        if (prev.some((c) => c._id === optimisticComment.comment._id)) return prev;
+        return [optimisticComment.comment, ...prev];
+      });
+      setLoading(false);
+    }
+  }, [optimisticComment]);
 
   if (loading) {
     return (

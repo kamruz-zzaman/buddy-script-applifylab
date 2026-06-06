@@ -134,42 +134,9 @@ function PostComposer() {
 
       {/* Image preview */}
       {previewUrl && (
-        <div
-          style={{
-            position: "relative",
-            marginTop: "10px",
-            display: "inline-block",
-          }}
-        >
-          <Image
-            src={previewUrl}
-            alt="Preview"
-            width={200}
-            height={150}
-            style={{ borderRadius: "8px", objectFit: "cover" }}
-            unoptimized
-          />
-          <button
-            onClick={clearFile}
-            style={{
-              position: "absolute",
-              top: "-8px",
-              right: "-8px",
-              background: "#fff",
-              border: "1px solid #ddd",
-              borderRadius: "50%",
-              width: "24px",
-              height: "24px",
-              cursor: "pointer",
-              fontSize: "14px",
-              lineHeight: "22px",
-              textAlign: "center",
-              padding: 0,
-              boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-            }}
-          >
-            ✕
-          </button>
+        <div style={{ position: "relative", marginTop: "10px", display: "inline-block" }}>
+          <img src={previewUrl} alt="Preview" style={{ borderRadius: "8px", maxWidth: "200px", maxHeight: "150px", objectFit: "cover" }} />
+          <button onClick={clearFile} style={{ position: "absolute", top: "-8px", right: "-8px", background: "#fff", border: "1px solid #ddd", borderRadius: "50%", width: "24px", height: "24px", cursor: "pointer", fontSize: "14px", lineHeight: "22px", textAlign: "center", padding: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>✕</button>
         </div>
       )}
 
