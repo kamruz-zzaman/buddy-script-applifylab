@@ -848,9 +848,9 @@ function EventCard() {
         <hr className="_underline" />
         <div className="_left_inner_event_bottom">
           <p className="_left_iner_event_bottom">17 People Going</p>
-          <Link href="#0" className="_left_iner_event_bottom_link">
+          <span className="_left_iner_event_bottom_link">
             Going
-          </Link>
+          </span>
         </div>
       </div>
     </Link>
