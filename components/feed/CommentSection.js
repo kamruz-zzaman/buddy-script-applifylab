@@ -181,54 +181,28 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
 export default function CommentSection({ postId, refreshKey }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
 
-  const fetchComments = useCallback(
-    async (pageNum = 1, append = false) => {
-      try {
-        const res = await fetch(
-          `/api/posts/${postId}/comments?page=${pageNum}&limit=20`,
-        );
-        const data = await res.json();
-        if (data?.success) {
-          if (append) {
-            setComments((prev) => [...prev, ...data.data.comments]);
-          } else {
-            setComments(data.data.comments);
-          }
-          setHasMore(data.data.pagination.hasMore);
-        }
-      } catch {
-      } finally {
-        setLoading(false);
+  const fetchComments = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments?limit=100`);
+      const data = await res.json();
+      if (data?.success) {
+        setComments(data.data.comments);
       }
-    },
-    [postId],
-  );
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
 
   useEffect(() => {
     setLoading(true);
-    setPage(1);
-    fetchComments(1, false);
+    fetchComments();
   }, [fetchComments, refreshKey]);
 
   const handleReplyAdded = useCallback(() => {
-    fetchComments(1, false);
+    fetchComments();
   }, [fetchComments]);
-
-  const loadMore = useCallback(() => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchComments(nextPage, true);
-  }, [page, fetchComments]);
-
-  // Auto-load more if we have few comments and more available
-  useEffect(() => {
-    if (!loading && hasMore && comments.length < 10 && page === 1) {
-      loadMore();
-    }
-  }, [loading, hasMore, comments.length, page, loadMore]);
 
   if (loading) {
     return (
@@ -244,17 +218,6 @@ export default function CommentSection({ postId, refreshKey }) {
 
   return (
     <div className="_timline_comment_main">
-      {hasMore && page === 1 && (
-        <div className="_previous_comment">
-          <button
-            type="button"
-            className="_previous_comment_txt"
-            onClick={loadMore}
-          >
-            View previous comments
-          </button>
-        </div>
-      )}
       {comments.map((comment) => (
         <div key={comment._id}>
           <SingleComment
@@ -273,17 +236,6 @@ export default function CommentSection({ postId, refreshKey }) {
           ))}
         </div>
       ))}
-      {hasMore && page > 1 && (
-        <div className="_previous_comment">
-          <button
-            type="button"
-            className="_previous_comment_txt"
-            onClick={loadMore}
-          >
-            Load more comments
-          </button>
-        </div>
-      )}
     </div>
   );
 }
