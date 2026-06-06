@@ -63,15 +63,23 @@ export async function GET() {
       },
     ]);
 
-    // Add some likes
+    // Add some reactions (various types)
     await Promise.all(
-      posts.map((post, idx) => {
-        // Each post gets likes from 2-3 random users (excluding author)
+      posts.map((post) => {
         const otherUsers = users.filter((u) => u._id.toString() !== post.author.toString());
         const shuffled = otherUsers.sort(() => 0.5 - Math.random());
-        const likers = shuffled.slice(0, 2 + (idx % 2));
-        post.likes = likers.map((u) => u._id);
-        post.likesCount = likers.length;
+        const reactionTypes = ["like", "love", "haha", "wow", "sad"];
+        const reactors = shuffled.slice(0, 2 + (Math.floor(Math.random() * 3)));
+        
+        post.reactions = reactors.map((u, i) => ({
+          user: u._id,
+          type: reactionTypes[i % reactionTypes.length],
+        }));
+        post.reactionsCount = reactors.length;
+        post.reactionCounts = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+        post.reactions.forEach((r) => {
+          post.reactionCounts[r.type] = (post.reactionCounts[r.type] || 0) + 1;
+        });
         return post.save();
       })
     );
@@ -110,11 +118,13 @@ export async function GET() {
       },
     ]);
 
-    // Add likes to comments
-    comments[0].likes = [users[0]._id, users[2]._id];
-    comments[0].likesCount = 2;
-    comments[1].likes = [users[1]._id];
-    comments[1].likesCount = 1;
+    // Add reactions to comments
+    comments[0].reactions = [{ user: users[0]._id, type: "like" }, { user: users[2]._id, type: "love" }];
+    comments[0].reactionsCount = 2;
+    comments[0].reactionCounts = { like: 1, love: 1, haha: 0, wow: 0, sad: 0, angry: 0 };
+    comments[1].reactions = [{ user: users[1]._id, type: "like" }];
+    comments[1].reactionsCount = 1;
+    comments[1].reactionCounts = { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
     await Promise.all(comments.map((c) => c.save()));
 
     // Add replies to comments

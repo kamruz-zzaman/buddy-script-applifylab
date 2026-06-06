@@ -36,7 +36,7 @@ export async function GET(request, { params }) {
         .skip(skip)
         .limit(limit)
         .populate("author", "firstName lastName")
-        .populate("likes", "firstName lastName")
+        .populate("reactions.user", "firstName lastName")
         .lean(),
       Comment.countDocuments({ post: postId, parent: null }),
     ]);
@@ -47,7 +47,7 @@ export async function GET(request, { params }) {
         const replies = await Comment.find({ parent: comment._id })
           .sort({ createdAt: 1 })
           .populate("author", "firstName lastName")
-          .populate("likes", "firstName lastName")
+          .populate("reactions.user", "firstName lastName")
           .lean();
         return { ...comment, replies };
       })
@@ -81,10 +81,10 @@ export async function POST(request, { params }) {
 
     const { id: postId } = await params;
     const body = await request.json();
-    const { content, parentId } = body;
+    const { content, parentId, imageUrl } = body;
 
-    if (!content || !content.trim()) {
-      return errorResponse("Comment content is required");
+    if ((!content || !content.trim()) && !imageUrl) {
+      return errorResponse("Comment must have content or an image");
     }
 
     // Verify post exists and user can view it
@@ -107,7 +107,8 @@ export async function POST(request, { params }) {
     const comment = await Comment.create({
       post: postId,
       author: userId,
-      content: content.trim(),
+      content: content?.trim() || "",
+      imageUrl: imageUrl || null,
       parent: parentId || null,
     });
 

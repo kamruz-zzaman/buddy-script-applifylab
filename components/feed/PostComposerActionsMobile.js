@@ -1,45 +1,35 @@
-import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon, SaveIcon, NotifyIcon, HideIcon, EditIcon, DeleteIcon, LearningIcon, InsightsIcon, FindFriendsIcon, BookmarksIcon, GroupIcon, GamingIcon, Settings2Icon, SavePostIcon, SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
+"use client";
 
-function PostComposerActionsMobile() {
+import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon } from "../common/icons";
+
+function PostComposerActionsMobile({ onSubmit, submitting, onPhotoClick, hasContent }) {
   return (
     <div className="_feed_inner_text_area_bottom_mobile">
       <div className="_feed_inner_text_mobile">
         <div className="_feed_inner_text_area_item">
-          <div className="_feed_inner_text_area_bottom_photo _feed_common">
-            <button
-              type="button"
-              className="_feed_inner_text_area_bottom_photo_link"
-            >
+          <div className="_feed_inner_text_area_bottom_photo _feed_common" onClick={onPhotoClick} style={{ cursor: "pointer" }}>
+            <button type="button" className="_feed_inner_text_area_bottom_photo_link">
               <span className="_feed_inner_text_area_bottom_photo_iamge _mar_img">
                 {PhotoIcon}
               </span>
             </button>
           </div>
           <div className="_feed_inner_text_area_bottom_video _feed_common">
-            <button
-              type="button"
-              className="_feed_inner_text_area_bottom_photo_link"
-            >
+            <button type="button" className="_feed_inner_text_area_bottom_photo_link">
               <span className="_feed_inner_text_area_bottom_photo_iamge _mar_img">
                 {VideoIcon}
               </span>
             </button>
           </div>
           <div className="_feed_inner_text_area_bottom_event _feed_common">
-            <button
-              type="button"
-              className="_feed_inner_text_area_bottom_photo_link"
-            >
+            <button type="button" className="_feed_inner_text_area_bottom_photo_link">
               <span className="_feed_inner_text_area_bottom_photo_iamge _mar_img">
                 {EventIcon}
               </span>
             </button>
           </div>
           <div className="_feed_inner_text_area_bottom_article _feed_common">
-            <button
-              type="button"
-              className="_feed_inner_text_area_bottom_photo_link"
-            >
+            <button type="button" className="_feed_inner_text_area_bottom_photo_link">
               <span className="_feed_inner_text_area_bottom_photo_iamge _mar_img">
                 {ArticleIcon}
               </span>
@@ -47,7 +37,13 @@ function PostComposerActionsMobile() {
           </div>
         </div>
         <div className="_feed_inner_text_area_btn">
-          <button type="button" className="_feed_inner_text_area_btn_link">
+          <button
+            type="button"
+            className="_feed_inner_text_area_btn_link"
+            onClick={onSubmit}
+            disabled={submitting || !hasContent}
+            style={{ opacity: hasContent ? 1 : 0.6 }}
+          >
             <svg
               className="_mar_img"
               xmlns="http://www.w3.org/2000/svg"
@@ -63,7 +59,7 @@ function PostComposerActionsMobile() {
                 clipRule="evenodd"
               />
             </svg>
-            <span>Post</span>
+            <span>{submitting ? "Posting..." : "Post"}</span>
           </button>
         </div>
       </div>

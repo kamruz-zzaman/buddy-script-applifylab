@@ -106,16 +106,21 @@ export function FeedProvider({ children }) {
     return false;
   }, []);
 
-  // Toggle like on post
-  const togglePostLike = useCallback(async (postId) => {
+  // Toggle reaction on post
+  const togglePostReaction = useCallback(async (postId, reactionType = "like") => {
     const data = await apiFetch(`/api/posts/${postId}/like`, {
       method: "POST",
+      body: JSON.stringify({ type: reactionType }),
     });
     if (data?.success) {
       setPosts((prev) =>
         prev.map((p) =>
           p._id === postId
-            ? { ...p, likesCount: data.data.likesCount }
+            ? {
+                ...p,
+                reactionCounts: data.data.reactionCounts,
+                reactionsCount: data.data.reactionsCount,
+              }
             : p
         )
       );
@@ -158,7 +163,7 @@ export function FeedProvider({ children }) {
         pagination,
         loadMore,
         createPost,
-        togglePostLike,
+        togglePostReaction,
         deletePost,
         logout,
       }}

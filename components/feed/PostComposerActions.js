@@ -1,17 +1,29 @@
-import ActionBtn from "./ActionBtn";
-import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon, SaveIcon, NotifyIcon, HideIcon, EditIcon, DeleteIcon, LearningIcon, InsightsIcon, FindFriendsIcon, BookmarksIcon, GroupIcon, GamingIcon, Settings2Icon, SavePostIcon, SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
+"use client";
 
-function PostComposerActions() {
+import ActionBtn from "./ActionBtn";
+import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon } from "../common/icons";
+
+function PostComposerActions({ onSubmit, submitting, onPhotoClick, onVideoClick, hasContent }) {
   return (
     <div className="_feed_inner_text_area_bottom">
       <div className="_feed_inner_text_area_item">
-        <ActionBtn icon={PhotoIcon} label="Photo" />
-        <ActionBtn icon={VideoIcon} label="Video" />
+        <div onClick={onPhotoClick} style={{ cursor: "pointer" }}>
+          <ActionBtn icon={PhotoIcon} label="Photo" />
+        </div>
+        <div onClick={onVideoClick} style={{ cursor: "pointer" }}>
+          <ActionBtn icon={VideoIcon} label="Video" />
+        </div>
         <ActionBtn icon={EventIcon} label="Event" />
         <ActionBtn icon={ArticleIcon} label="Article" />
       </div>
       <div className="_feed_inner_text_area_btn">
-        <button type="button" className="_feed_inner_text_area_btn_link">
+        <button
+          type="button"
+          className="_feed_inner_text_area_btn_link"
+          onClick={onSubmit}
+          disabled={submitting || !hasContent}
+          style={{ opacity: hasContent ? 1 : 0.6, cursor: hasContent ? "pointer" : "default" }}
+        >
           <svg
             className="_mar_img"
             xmlns="http://www.w3.org/2000/svg"
@@ -27,7 +39,7 @@ function PostComposerActions() {
               clipRule="evenodd"
             />
           </svg>
-          <span>Post</span>
+          <span>{submitting ? "Posting..." : "Post"}</span>
         </button>
       </div>
     </div>

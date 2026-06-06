@@ -62,7 +62,7 @@ export async function GET(request) {
         .skip(skip)
         .limit(limit)
         .populate("author", "firstName lastName")
-        .populate("likes", "firstName lastName")
+        .populate("reactions.user", "firstName lastName")
         .lean(),
       Post.countDocuments(query),
     ]);
