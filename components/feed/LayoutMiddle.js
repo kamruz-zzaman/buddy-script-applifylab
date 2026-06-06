@@ -105,10 +105,3 @@ function LayoutMiddle() {
 }
 
 export default LayoutMiddle;
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default LayoutMiddle;
