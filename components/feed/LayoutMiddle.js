@@ -42,8 +42,12 @@ function LayoutMiddle() {
     if (loadingMore || autoLoadCount.current >= MAX_AUTO_LOADS) return;
 
     const timer = setTimeout(() => {
-      autoLoadCount.current++;
-      loadMoreRef.current();
+      const pageBottom = document.documentElement.scrollHeight;
+      const viewBottom = window.innerHeight + window.scrollY;
+      if (pageBottom - viewBottom < 800) {
+        autoLoadCount.current++;
+        loadMoreRef.current();
+      }
     }, 1000);
     return () => clearTimeout(timer);
   }, [initialLoading, posts.length, hasMore]);
