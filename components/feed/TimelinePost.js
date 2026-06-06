@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import TimelineDropdownItem from "./TimelineDropdownItem";
@@ -6,6 +9,21 @@ import CommentSection from "./CommentSection";
 import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon, SaveIcon, NotifyIcon, HideIcon, EditIcon, DeleteIcon, LearningIcon, InsightsIcon, FindFriendsIcon, BookmarksIcon, GroupIcon, GamingIcon, Settings2Icon, SavePostIcon, SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
 
 function TimelinePost() {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [dropdownOpen]);
+
   return (
     <div className="_feed_inner_timeline_post_area _b_radious6 _padd_b24 _padd_t24 _mar_b16">
       <div className="_feed_inner_timeline_content _padd_r24 _padd_l24">
@@ -23,11 +41,11 @@ function TimelinePost() {
               </p>
             </div>
           </div>
-          <div className="_feed_inner_timeline_post_box_dropdown">
+          <div className="_feed_inner_timeline_post_box_dropdown" ref={dropdownRef}>
             <div className="_feed_timeline_post_dropdown">
               <button
-                id="_timeline_show_drop_btn"
                 className="_feed_timeline_post_dropdown_link"
+                onClick={() => setDropdownOpen((p) => !p)}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -43,8 +61,7 @@ function TimelinePost() {
               </button>
             </div>
             <div
-              id="_timeline_drop"
-              className="_feed_timeline_dropdown _timeline_dropdown"
+              className={`_feed_timeline_dropdown _timeline_dropdown${dropdownOpen ? " show" : ""}`}
             >
               <ul className="_feed_timeline_dropdown_list">
                 <TimelineDropdownItem icon={SaveIcon} label="Save Post" />

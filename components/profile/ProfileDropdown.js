@@ -1,22 +1,38 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ProfileDropdownItem from "./ProfileDropdownItem";
 import { SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
 
 function ProfileDropdown() {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [open]);
+
   return (
-    <div className="_header_nav_profile">
+    <div className="_header_nav_profile" ref={containerRef}>
       <div className="_header_nav_profile_image">
-        <Image src="/assets/images/profile.png" alt="Image" width={800} height={600} className="_nav_profile_img" />
+        <Image src="/assets/images/profile.png" alt="Image" width={24} height={24} className="_nav_profile_img" />
       </div>
       <div className="_header_nav_dropdown">
         <p className="_header_nav_para">Dylan Field</p>
         <button
-          id="_profile_drop_show_btn"
           className="_header_nav_dropdown_btn _dropdown_toggle"
           type="button"
+          onClick={() => setOpen((prev) => !prev)}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -33,12 +49,11 @@ function ProfileDropdown() {
         </button>
       </div>
       <div
-        id="_prfoile_drop"
-        className="_nav_profile_dropdown _profile_dropdown"
+        className={`_nav_profile_dropdown _profile_dropdown${open ? " show" : ""}`}
       >
         <div className="_nav_profile_dropdown_info">
           <div className="_nav_profile_dropdown_image">
-            <Image src="/assets/images/profile.png" alt="Image" width={800} height={600} className="_nav_drop_img" />
+            <Image src="/assets/images/profile.png" alt="Image" width={40} height={40} className="_nav_drop_img" />
           </div>
           <div className="_nav_profile_dropdown_info_txt">
             <h4 className="_nav_dropdown_title">Dylan Field</h4>
