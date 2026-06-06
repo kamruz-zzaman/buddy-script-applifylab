@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
+import { useInView } from "react-intersection-observer";
 import StoriesDesktop from "./StoriesDesktop";
 import StoriesMobile from "./StoriesMobile";
 import PostComposer from "./PostComposer";
@@ -12,50 +13,38 @@ function LayoutMiddle() {
   const { posts, initialLoading, loadingMore, hasMore, loadMore } =
     useFeedContext();
 
-  // Keep latest values in refs to avoid stale closures
-  const stateRef = useRef({ hasMore, loadingMore });
-  stateRef.current = { hasMore, loadingMore };
-
   const loadMoreRef = useRef(loadMore);
   loadMoreRef.current = loadMore;
 
+  const { ref: sentinelRef, inView } = useInView({
+    rootMargin: "400px",
+    skip: !hasMore || loadingMore,
+  });
+
   const loadingRef = useRef(false);
 
-  const tryLoadMore = () => {
-    if (loadingRef.current) return;
-    const { hasMore, loadingMore } = stateRef.current;
-    if (!hasMore || loadingMore) return;
-
-    // Check if we're near the bottom of the page
-    const scrollBottom = window.innerHeight + window.scrollY;
-    const pageBottom = document.documentElement.scrollHeight;
-
-    if (pageBottom - scrollBottom < 600) {
+  // Trigger loadMore when sentinel comes into view
+  useEffect(() => {
+    if (inView && hasMore && !loadingMore && !loadingRef.current) {
       loadingRef.current = true;
       loadMoreRef.current().finally(() => {
         loadingRef.current = false;
       });
     }
-  };
+  }, [inView, hasMore, loadingMore]);
 
+  // Desktop fallback: if not enough posts to cause scroll, try loading
   useEffect(() => {
-    // Try immediately on mount (desktop: not enough posts to scroll)
-    const timer = setTimeout(tryLoadMore, 300);
-    window.addEventListener("scroll", tryLoadMore, { passive: true });
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("scroll", tryLoadMore);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Also try after posts change (new batch loaded, might still have room)
-  useEffect(() => {
-    if (!initialLoading && posts.length > 0) {
-      tryLoadMore();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [posts.length, initialLoading]);
+    if (initialLoading || posts.length === 0 || !hasMore || loadingMore) return;
+    const timer = setTimeout(() => {
+      const pageBottom = document.documentElement.scrollHeight;
+      const viewBottom = window.innerHeight + window.scrollY;
+      if (pageBottom - viewBottom < 800) {
+        loadMoreRef.current();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [initialLoading, posts.length, hasMore, loadingMore]);
 
   return (
     <div className="col-xl-6 col-lg-6 col-md-12 col-sm-12">
@@ -82,7 +71,10 @@ function LayoutMiddle() {
             posts.map((post) => <TimelinePost key={post._id} post={post} />)
           )}
 
-          {loadingMore && posts.length > 0 && (
+          {/* Intersection Observer sentinel */}
+          <div ref={sentinelRef} style={{ height: "1px" }} />
+
+          {loadingMore && (
             <div
               style={{
                 textAlign: "center",
