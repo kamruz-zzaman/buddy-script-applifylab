@@ -19,9 +19,9 @@ export async function POST(request) {
     }
 
     // Find user and include password field for comparison
-    const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
-      "+password"
-    );
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+    }).select("+password");
 
     if (!user) {
       return errorResponse("Invalid email or password", 401);

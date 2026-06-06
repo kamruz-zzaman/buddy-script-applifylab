@@ -3,7 +3,13 @@
 import ActionBtn from "./ActionBtn";
 import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon } from "../common/icons";
 
-function PostComposerActions({ onSubmit, submitting, onPhotoClick, onVideoClick, hasContent }) {
+function PostComposerActions({
+  onSubmit,
+  submitting,
+  onPhotoClick,
+  onVideoClick,
+  hasContent,
+}) {
   return (
     <div className="_feed_inner_text_area_bottom">
       <div className="_feed_inner_text_area_item">
@@ -22,7 +28,10 @@ function PostComposerActions({ onSubmit, submitting, onPhotoClick, onVideoClick,
           className="_feed_inner_text_area_btn_link"
           onClick={onSubmit}
           disabled={submitting || !hasContent}
-          style={{ opacity: hasContent ? 1 : 0.6, cursor: hasContent ? "pointer" : "default" }}
+          style={{
+            opacity: hasContent ? 1 : 0.6,
+            cursor: hasContent ? "pointer" : "default",
+          }}
         >
           <svg
             className="_mar_img"

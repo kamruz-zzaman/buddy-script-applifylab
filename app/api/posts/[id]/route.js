@@ -1,6 +1,10 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
-import { getCurrentUserId, successResponse, errorResponse } from "@/lib/utils/auth";
+import {
+  getCurrentUserId,
+  successResponse,
+  errorResponse,
+} from "@/lib/utils/auth";
 
 // GET - Fetch a single post
 export async function GET(request, { params }) {

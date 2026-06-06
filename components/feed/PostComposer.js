@@ -75,7 +75,13 @@ function PostComposer() {
     <div className="_feed_inner_text_area _b_radious6 _padd_b24 _padd_t24 _padd_r24 _padd_l24 _mar_b16">
       <div className="_feed_inner_text_area_box">
         <div className="_feed_inner_text_area_box_image">
-          <Image src="/assets/images/txt_img.png" alt="Image" width={800} height={600} className="_txt_img" />
+          <Image
+            src="/assets/images/txt_img.png"
+            alt="Image"
+            width={800}
+            height={600}
+            className="_txt_img"
+          />
         </div>
         <div className="form-floating _feed_inner_text_area_box_form">
           <textarea
@@ -109,7 +115,9 @@ function PostComposer() {
 
       {/* Private post toggle */}
       <div style={{ marginTop: "10px" }}>
-        <label style={{ fontSize: "13px", color: "#65676b", cursor: "pointer" }}>
+        <label
+          style={{ fontSize: "13px", color: "#65676b", cursor: "pointer" }}
+        >
           <input
             type="checkbox"
             checked={isPrivate}
@@ -136,7 +144,11 @@ function PostComposer() {
       )}
 
       {error && (
-        <div className="alert alert-danger py-1 mt-2 mb-0" role="alert" style={{ fontSize: "13px" }}>
+        <div
+          className="alert alert-danger py-1 mt-2 mb-0"
+          role="alert"
+          style={{ fontSize: "13px" }}
+        >
           {error}
         </div>
       )}

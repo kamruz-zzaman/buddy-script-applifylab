@@ -7,7 +7,13 @@ function TimelineDropdownItem({ icon, label, onClick }) {
         <button
           onClick={onClick}
           className="_feed_timeline_dropdown_link"
-          style={{ background: "none", border: "none", width: "100%", textAlign: "left", cursor: "pointer" }}
+          style={{
+            background: "none",
+            border: "none",
+            width: "100%",
+            textAlign: "left",
+            cursor: "pointer",
+          }}
         >
           <span>{icon}</span>
           {label}

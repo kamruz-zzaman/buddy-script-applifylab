@@ -1,6 +1,10 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
-import { getCurrentUserId, successResponse, errorResponse } from "@/lib/utils/auth";
+import {
+  getCurrentUserId,
+  successResponse,
+  errorResponse,
+} from "@/lib/utils/auth";
 
 // POST - Create a new post
 export async function POST(request) {
@@ -47,7 +51,10 @@ export async function GET(request) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit")) || 10));
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get("limit")) || 10),
+    );
     const cursor = searchParams.get("cursor"); // last post _id from previous page
 
     // Build query

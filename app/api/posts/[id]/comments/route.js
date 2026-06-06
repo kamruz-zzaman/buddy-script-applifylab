@@ -1,7 +1,11 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
 import Comment from "@/lib/models/Comment";
-import { getCurrentUserId, successResponse, errorResponse } from "@/lib/utils/auth";
+import {
+  getCurrentUserId,
+  successResponse,
+  errorResponse,
+} from "@/lib/utils/auth";
 
 // GET - Fetch comments for a post
 export async function GET(request, { params }) {
@@ -26,7 +30,10 @@ export async function GET(request, { params }) {
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page")) || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit")) || 20));
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get("limit")) || 20),
+    );
     const skip = (page - 1) * limit;
 
     // Fetch top-level comments (parent is null) with pagination
@@ -52,7 +59,7 @@ export async function GET(request, { params }) {
           .populate("reactions.user", "firstName lastName")
           .lean();
         return { ...comment, replies };
-      })
+      }),
     );
 
     return successResponse({

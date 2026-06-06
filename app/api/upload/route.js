@@ -1,4 +1,8 @@
-import { getCurrentUserId, successResponse, errorResponse } from "@/lib/utils/auth";
+import {
+  getCurrentUserId,
+  successResponse,
+  errorResponse,
+} from "@/lib/utils/auth";
 import cloudinary from "@/lib/cloudinary";
 
 export async function POST(request) {
@@ -34,14 +38,15 @@ export async function POST(request) {
         {
           folder,
           resource_type: resourceType,
-          transformation: resourceType === "image"
-            ? [{ quality: "auto", fetch_format: "auto" }]
-            : undefined,
+          transformation:
+            resourceType === "image"
+              ? [{ quality: "auto", fetch_format: "auto" }]
+              : undefined,
         },
         (error, result) => {
           if (error) reject(error);
           else resolve(result);
-        }
+        },
       );
 
       // Write buffer to stream

@@ -3,7 +3,13 @@ import { verifyToken } from "@/lib/utils/auth";
 import { rateLimit } from "@/lib/utils/rateLimit";
 
 // Paths that do NOT require authentication
-const publicPaths = ["/login", "/registration", "/api/auth/login", "/api/auth/register", "/api/seed"];
+const publicPaths = [
+  "/login",
+  "/registration",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/seed",
+];
 
 // Paths that ALWAYS require authentication
 const protectedPaths = ["/feed"];
@@ -13,23 +19,32 @@ export async function middleware(request) {
 
   // Apply rate limiting to API routes
   if (pathname.startsWith("/api/")) {
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
 
     // Stricter rate limit for auth endpoints
     if (pathname.startsWith("/api/auth/")) {
       const { allowed } = rateLimit(`auth_${ip}`, 10, 60000); // 10 requests per minute
       if (!allowed) {
         return Response.json(
-          { success: false, error: "Too many requests. Please try again later." },
-          { status: 429 }
+          {
+            success: false,
+            error: "Too many requests. Please try again later.",
+          },
+          { status: 429 },
         );
       }
     } else {
       const { allowed } = rateLimit(`api_${ip}`, 60, 60000); // 60 requests per minute
       if (!allowed) {
         return Response.json(
-          { success: false, error: "Too many requests. Please try again later." },
-          { status: 429 }
+          {
+            success: false,
+            error: "Too many requests. Please try again later.",
+          },
+          { status: 429 },
         );
       }
     }
@@ -64,7 +79,7 @@ export async function middleware(request) {
       if (pathname.startsWith("/api/")) {
         return Response.json(
           { success: false, error: "Not authenticated" },
-          { status: 401 }
+          { status: 401 },
         );
       }
       // For pages, redirect to login
@@ -76,7 +91,7 @@ export async function middleware(request) {
       if (pathname.startsWith("/api/")) {
         return Response.json(
           { success: false, error: "Invalid or expired token" },
-          { status: 401 }
+          { status: 401 },
         );
       }
       const response = NextResponse.redirect(new URL("/login", request.url));

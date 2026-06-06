@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 
 const FeedContext = createContext(null);
 
@@ -76,85 +83,113 @@ export function FeedProvider({ children }) {
   }, [hasMore, loadingMore, nextCursor]);
 
   // ─── Optimistic: Create post (no refetch) ────────────────────────────
-  const createPost = useCallback(async (postData) => {
-    // Optimistic: generate temp ID and add immediately
-    const tempId = "temp_" + Date.now();
-    const optimisticPost = {
-      _id: tempId,
-      author: { _id: currentUser?.id, firstName: currentUser?.firstName, lastName: currentUser?.lastName },
-      content: postData.content || "",
-      imageUrl: postData.imageUrl || null,
-      isPrivate: postData.isPrivate || false,
-      reactions: [],
-      reactionCounts: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
-      reactionsCount: 0,
-      commentsCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    setPosts((prev) => [optimisticPost, ...prev]);
+  const createPost = useCallback(
+    async (postData) => {
+      // Optimistic: generate temp ID and add immediately
+      const tempId = "temp_" + Date.now();
+      const optimisticPost = {
+        _id: tempId,
+        author: {
+          _id: currentUser?.id,
+          firstName: currentUser?.firstName,
+          lastName: currentUser?.lastName,
+        },
+        content: postData.content || "",
+        imageUrl: postData.imageUrl || null,
+        isPrivate: postData.isPrivate || false,
+        reactions: [],
+        reactionCounts: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
+        reactionsCount: 0,
+        commentsCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+      setPosts((prev) => [optimisticPost, ...prev]);
 
-    const data = await apiFetch("/api/posts", {
-      method: "POST",
-      body: JSON.stringify(postData),
-    });
-    if (data?.success) {
-      // Replace temp post with real one
-      setPosts((prev) =>
-        prev.map((p) => (p._id === tempId ? data.data.post : p))
-      );
-      return true;
-    }
-    // Revert on failure
-    setPosts((prev) => prev.filter((p) => p._id !== tempId));
-    return false;
-  }, [currentUser]);
+      const data = await apiFetch("/api/posts", {
+        method: "POST",
+        body: JSON.stringify(postData),
+      });
+      if (data?.success) {
+        // Replace temp post with real one
+        setPosts((prev) =>
+          prev.map((p) => (p._id === tempId ? data.data.post : p)),
+        );
+        return true;
+      }
+      // Revert on failure
+      setPosts((prev) => prev.filter((p) => p._id !== tempId));
+      return false;
+    },
+    [currentUser],
+  );
 
   // ─── Optimistic: Toggle reaction (no refetch) ────────────────────────
-  const togglePostReaction = useCallback(async (postId, reactionType = "like") => {
-    // Optimistic: update immediately
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p._id !== postId) return p;
-        const existingReaction = p.reactions?.find(
-          (r) => (r.user?._id || r.user) === currentUser?.id
-        );
-        const newReactionCounts = { ...p.reactionCounts };
-        let newReactions = [...(p.reactions || [])];
-        let newReactionsCount = p.reactionsCount || 0;
+  const togglePostReaction = useCallback(
+    async (postId, reactionType = "like") => {
+      // Optimistic: update immediately
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id !== postId) return p;
+          const existingReaction = p.reactions?.find(
+            (r) => (r.user?._id || r.user) === currentUser?.id,
+          );
+          const newReactionCounts = { ...p.reactionCounts };
+          let newReactions = [...(p.reactions || [])];
+          let newReactionsCount = p.reactionsCount || 0;
 
-        if (existingReaction) {
-          if (existingReaction.type === reactionType) {
-            // Remove reaction
-            newReactions = newReactions.filter(
-              (r) => (r.user?._id || r.user) !== currentUser?.id
-            );
-            newReactionCounts[existingReaction.type] = Math.max(0, (newReactionCounts[existingReaction.type] || 0) - 1);
-            newReactionsCount = Math.max(0, newReactionsCount - 1);
+          if (existingReaction) {
+            if (existingReaction.type === reactionType) {
+              // Remove reaction
+              newReactions = newReactions.filter(
+                (r) => (r.user?._id || r.user) !== currentUser?.id,
+              );
+              newReactionCounts[existingReaction.type] = Math.max(
+                0,
+                (newReactionCounts[existingReaction.type] || 0) - 1,
+              );
+              newReactionsCount = Math.max(0, newReactionsCount - 1);
+            } else {
+              // Change reaction type
+              newReactions = newReactions.map((r) =>
+                (r.user?._id || r.user) === currentUser?.id
+                  ? { ...r, type: reactionType }
+                  : r,
+              );
+              newReactionCounts[existingReaction.type] = Math.max(
+                0,
+                (newReactionCounts[existingReaction.type] || 0) - 1,
+              );
+              newReactionCounts[reactionType] =
+                (newReactionCounts[reactionType] || 0) + 1;
+            }
           } else {
-            // Change reaction type
-            newReactions = newReactions.map((r) =>
-              (r.user?._id || r.user) === currentUser?.id ? { ...r, type: reactionType } : r
-            );
-            newReactionCounts[existingReaction.type] = Math.max(0, (newReactionCounts[existingReaction.type] || 0) - 1);
-            newReactionCounts[reactionType] = (newReactionCounts[reactionType] || 0) + 1;
+            // Add reaction
+            newReactions.push({
+              user: { _id: currentUser?.id },
+              type: reactionType,
+            });
+            newReactionCounts[reactionType] =
+              (newReactionCounts[reactionType] || 0) + 1;
+            newReactionsCount++;
           }
-        } else {
-          // Add reaction
-          newReactions.push({ user: { _id: currentUser?.id }, type: reactionType });
-          newReactionCounts[reactionType] = (newReactionCounts[reactionType] || 0) + 1;
-          newReactionsCount++;
-        }
-        return { ...p, reactions: newReactions, reactionCounts: newReactionCounts, reactionsCount: newReactionsCount };
-      })
-    );
+          return {
+            ...p,
+            reactions: newReactions,
+            reactionCounts: newReactionCounts,
+            reactionsCount: newReactionsCount,
+          };
+        }),
+      );
 
-    // Server sync (fire and forget)
-    apiFetch(`/api/posts/${postId}/like`, {
-      method: "POST",
-      body: JSON.stringify({ type: reactionType }),
-    });
-    return true;
-  }, [currentUser]);
+      // Server sync (fire and forget)
+      apiFetch(`/api/posts/${postId}/like`, {
+        method: "POST",
+        body: JSON.stringify({ type: reactionType }),
+      });
+      return true;
+    },
+    [currentUser],
+  );
 
   // ─── Optimistic: Delete post ─────────────────────────────────────────
   const deletePost = useCallback(async (postId) => {
@@ -167,8 +202,10 @@ export function FeedProvider({ children }) {
   const incrementCommentsCount = useCallback((postId) => {
     setPosts((prev) =>
       prev.map((p) =>
-        p._id === postId ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p
-      )
+        p._id === postId
+          ? { ...p, commentsCount: (p.commentsCount || 0) + 1 }
+          : p,
+      ),
     );
   }, []);
 
@@ -211,4 +248,3 @@ export function useFeedContext() {
   if (!ctx) throw new Error("useFeedContext must be used within FeedProvider");
   return ctx;
 }
-

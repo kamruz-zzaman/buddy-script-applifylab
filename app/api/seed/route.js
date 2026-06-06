@@ -17,38 +17,68 @@ export async function GET() {
 
     // Seed users (password: "password123")
     const users = await User.create([
-      { firstName: "Karim", lastName: "Saif", email: "karim@example.com", password: "password123" },
-      { firstName: "Sarah", lastName: "Ahmed", email: "sarah@example.com", password: "password123" },
-      { firstName: "Mohammad", lastName: "Ali", email: "mohammad@example.com", password: "password123" },
-      { firstName: "Fatima", lastName: "Hassan", email: "fatima@example.com", password: "password123" },
-      { firstName: "Omar", lastName: "Rahman", email: "omar@example.com", password: "password123" },
+      {
+        firstName: "Karim",
+        lastName: "Saif",
+        email: "karim@example.com",
+        password: "password123",
+      },
+      {
+        firstName: "Sarah",
+        lastName: "Ahmed",
+        email: "sarah@example.com",
+        password: "password123",
+      },
+      {
+        firstName: "Mohammad",
+        lastName: "Ali",
+        email: "mohammad@example.com",
+        password: "password123",
+      },
+      {
+        firstName: "Fatima",
+        lastName: "Hassan",
+        email: "fatima@example.com",
+        password: "password123",
+      },
+      {
+        firstName: "Omar",
+        lastName: "Rahman",
+        email: "omar@example.com",
+        password: "password123",
+      },
     ]);
 
     // Seed posts
     const posts = await Post.create([
       {
         author: users[0]._id,
-        content: "Just finished building a new feature for our health tracking app! The real-time analytics dashboard is looking amazing. Can't wait to share more details soon!",
+        content:
+          "Just finished building a new feature for our health tracking app! The real-time analytics dashboard is looking amazing. Can't wait to share more details soon!",
         isPrivate: false,
       },
       {
         author: users[1]._id,
-        content: "Beautiful sunrise this morning! Nature never ceases to amaze me 🌅",
+        content:
+          "Beautiful sunrise this morning! Nature never ceases to amaze me 🌅",
         isPrivate: false,
       },
       {
         author: users[2]._id,
-        content: "Excited to announce that I'll be speaking at the Tech Conference 2024 about AI and its impact on modern web development. Who's attending?",
+        content:
+          "Excited to announce that I'll be speaking at the Tech Conference 2024 about AI and its impact on modern web development. Who's attending?",
         isPrivate: false,
       },
       {
         author: users[0]._id,
-        content: "This is my private journal entry for today - working on some personal goals.",
+        content:
+          "This is my private journal entry for today - working on some personal goals.",
         isPrivate: true,
       },
       {
         author: users[3]._id,
-        content: "Just finished reading 'Clean Code' by Robert Martin. Highly recommend it to every developer out there! The principles in this book are timeless.",
+        content:
+          "Just finished reading 'Clean Code' by Robert Martin. Highly recommend it to every developer out there! The principles in this book are timeless.",
         isPrivate: false,
       },
       {
@@ -58,7 +88,8 @@ export async function GET() {
       },
       {
         author: users[1]._id,
-        content: "Had an amazing dinner with the team tonight. Great food, better conversations!",
+        content:
+          "Had an amazing dinner with the team tonight. Great food, better conversations!",
         isPrivate: false,
       },
     ]);
@@ -66,22 +97,31 @@ export async function GET() {
     // Add some reactions (various types)
     await Promise.all(
       posts.map((post) => {
-        const otherUsers = users.filter((u) => u._id.toString() !== post.author.toString());
+        const otherUsers = users.filter(
+          (u) => u._id.toString() !== post.author.toString(),
+        );
         const shuffled = otherUsers.sort(() => 0.5 - Math.random());
         const reactionTypes = ["like", "love", "haha", "wow", "sad"];
-        const reactors = shuffled.slice(0, 2 + (Math.floor(Math.random() * 3)));
-        
+        const reactors = shuffled.slice(0, 2 + Math.floor(Math.random() * 3));
+
         post.reactions = reactors.map((u, i) => ({
           user: u._id,
           type: reactionTypes[i % reactionTypes.length],
         }));
         post.reactionsCount = reactors.length;
-        post.reactionCounts = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+        post.reactionCounts = {
+          like: 0,
+          love: 0,
+          haha: 0,
+          wow: 0,
+          sad: 0,
+          angry: 0,
+        };
         post.reactions.forEach((r) => {
           post.reactionCounts[r.type] = (post.reactionCounts[r.type] || 0) + 1;
         });
         return post.save();
-      })
+      }),
     );
 
     // Seed comments
@@ -89,7 +129,8 @@ export async function GET() {
       {
         post: posts[0]._id,
         author: users[1]._id,
-        content: "That sounds amazing! Can't wait to see the analytics dashboard!",
+        content:
+          "That sounds amazing! Can't wait to see the analytics dashboard!",
       },
       {
         post: posts[0]._id,
@@ -109,7 +150,8 @@ export async function GET() {
       {
         post: posts[4]._id,
         author: users[0]._id,
-        content: "Absolutely agree! Clean Code changed the way I write software.",
+        content:
+          "Absolutely agree! Clean Code changed the way I write software.",
       },
       {
         post: posts[5]._id,
@@ -119,12 +161,29 @@ export async function GET() {
     ]);
 
     // Add reactions to comments
-    comments[0].reactions = [{ user: users[0]._id, type: "like" }, { user: users[2]._id, type: "love" }];
+    comments[0].reactions = [
+      { user: users[0]._id, type: "like" },
+      { user: users[2]._id, type: "love" },
+    ];
     comments[0].reactionsCount = 2;
-    comments[0].reactionCounts = { like: 1, love: 1, haha: 0, wow: 0, sad: 0, angry: 0 };
+    comments[0].reactionCounts = {
+      like: 1,
+      love: 1,
+      haha: 0,
+      wow: 0,
+      sad: 0,
+      angry: 0,
+    };
     comments[1].reactions = [{ user: users[1]._id, type: "like" }];
     comments[1].reactionsCount = 1;
-    comments[1].reactionCounts = { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+    comments[1].reactionCounts = {
+      like: 1,
+      love: 0,
+      haha: 0,
+      wow: 0,
+      sad: 0,
+      angry: 0,
+    };
     await Promise.all(comments.map((c) => c.save()));
 
     // Add replies to comments
@@ -132,13 +191,15 @@ export async function GET() {
       {
         post: posts[0]._id,
         author: users[0]._id,
-        content: "Thanks Sarah! We're using Next.js and WebSockets for the real-time features.",
+        content:
+          "Thanks Sarah! We're using Next.js and WebSockets for the real-time features.",
         parent: comments[0]._id,
       },
       {
         post: posts[0]._id,
         author: users[0]._id,
-        content: "We're using Next.js with Server-Sent Events for real-time updates. It's been a great experience!",
+        content:
+          "We're using Next.js with Server-Sent Events for real-time updates. It's been a great experience!",
         parent: comments[1]._id,
       },
       {

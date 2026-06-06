@@ -16,7 +16,9 @@ export async function POST(request) {
 
     // Validation
     if (!firstName || !lastName || !email || !password) {
-      return errorResponse("All fields are required: firstName, lastName, email, password");
+      return errorResponse(
+        "All fields are required: firstName, lastName, email, password",
+      );
     }
 
     if (password.length < 6) {
@@ -55,7 +57,7 @@ export async function POST(request) {
           email: user.email,
         },
       },
-      201
+      201,
     );
   } catch (error) {
     // Handle mongoose validation errors

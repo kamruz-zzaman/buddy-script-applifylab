@@ -31,7 +31,13 @@ function ProfileDropdown() {
   return (
     <div className="_header_nav_profile" ref={containerRef}>
       <div className="_header_nav_profile_image">
-        <Image src="/assets/images/profile.png" alt="Profile" width={24} height={24} className="_nav_profile_img" />
+        <Image
+          src="/assets/images/profile.png"
+          alt="Profile"
+          width={24}
+          height={24}
+          className="_nav_profile_img"
+        />
       </div>
       <div className="_header_nav_dropdown">
         <p className="_header_nav_para">{userName}</p>
@@ -59,7 +65,13 @@ function ProfileDropdown() {
       >
         <div className="_nav_profile_dropdown_info">
           <div className="_nav_profile_dropdown_image">
-            <Image src="/assets/images/profile.png" alt="Profile" width={40} height={40} className="_nav_drop_img" />
+            <Image
+              src="/assets/images/profile.png"
+              alt="Profile"
+              width={40}
+              height={40}
+              className="_nav_drop_img"
+            />
           </div>
           <div className="_nav_profile_dropdown_info_txt">
             <h4 className="_nav_dropdown_title">{userName}</h4>

@@ -7,7 +7,13 @@ import TimelineDropdownItem from "./TimelineDropdownItem";
 import CommentBox from "./CommentBox";
 import CommentSection from "./CommentSection";
 import { useFeedContext } from "../common/FeedContext";
-import { SaveIcon, NotifyIcon, HideIcon, EditIcon, DeleteIcon } from "../common/icons";
+import {
+  SaveIcon,
+  NotifyIcon,
+  HideIcon,
+  EditIcon,
+  DeleteIcon,
+} from "../common/icons";
 
 function timeAgo(dateStr) {
   const now = new Date();
@@ -33,11 +39,18 @@ const REACTIONS = [
 ];
 
 function TimelinePost({ post }) {
-  const { currentUser, togglePostReaction, deletePost, incrementCommentsCount } = useFeedContext();
+  const {
+    currentUser,
+    togglePostReaction,
+    deletePost,
+    incrementCommentsCount,
+  } = useFeedContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
-  const [localCommentsCount, setLocalCommentsCount] = useState(post?.commentsCount || 0);
+  const [localCommentsCount, setLocalCommentsCount] = useState(
+    post?.commentsCount || 0,
+  );
   const dropdownRef = useRef(null);
   const reactionRef = useRef(null);
   const reactionTimeout = useRef(null);
@@ -45,9 +58,9 @@ function TimelinePost({ post }) {
   const isOwner = currentUser?.id === post?.author?._id;
 
   // Determine my current reaction from post data
-  const myReaction = post?.reactions?.find(
-    (r) => (r.user?._id || r.user) === currentUser?.id
-  )?.type || null;
+  const myReaction =
+    post?.reactions?.find((r) => (r.user?._id || r.user) === currentUser?.id)
+      ?.type || null;
   const reactionCounts = post?.reactionCounts || {};
   const reactionsCount = post?.reactionsCount || 0;
 
@@ -57,8 +70,10 @@ function TimelinePost({ post }) {
   useEffect(() => {
     if (!dropdownOpen && !showReactions) return;
     const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
-      if (reactionRef.current && !reactionRef.current.contains(e.target)) setShowReactions(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
+        setDropdownOpen(false);
+      if (reactionRef.current && !reactionRef.current.contains(e.target))
+        setShowReactions(false);
     };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
@@ -102,7 +117,13 @@ function TimelinePost({ post }) {
         <div className="_feed_inner_timeline_post_top">
           <div className="_feed_inner_timeline_post_box">
             <div className="_feed_inner_timeline_post_box_image">
-              <Image src="/assets/images/post_img.png" alt="" width={44} height={44} className="_post_img" />
+              <Image
+                src="/assets/images/post_img.png"
+                alt=""
+                width={44}
+                height={44}
+                className="_post_img"
+              />
             </div>
             <div className="_feed_inner_timeline_post_box_txt">
               <h4 className="_feed_inner_timeline_post_box_title">
@@ -110,31 +131,54 @@ function TimelinePost({ post }) {
               </h4>
               <p className="_feed_inner_timeline_post_box_para">
                 {timeAgo(post.createdAt)} .{" "}
-                <Link href="#0">{post.isPrivate ? "🔒 Private" : "Public"}</Link>
+                <Link href="#0">
+                  {post.isPrivate ? "🔒 Private" : "Public"}
+                </Link>
               </p>
             </div>
           </div>
 
           {/* Dropdown */}
-          <div className="_feed_inner_timeline_post_box_dropdown" ref={dropdownRef}>
+          <div
+            className="_feed_inner_timeline_post_box_dropdown"
+            ref={dropdownRef}
+          >
             <div className="_feed_timeline_post_dropdown">
-              <button className="_feed_timeline_post_dropdown_link" onClick={() => setDropdownOpen((p) => !p)}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="4" height="17" fill="none" viewBox="0 0 4 17">
+              <button
+                className="_feed_timeline_post_dropdown_link"
+                onClick={() => setDropdownOpen((p) => !p)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="4"
+                  height="17"
+                  fill="none"
+                  viewBox="0 0 4 17"
+                >
                   <circle cx="2" cy="2" r="2" fill="#C4C4C4" />
                   <circle cx="2" cy="8" r="2" fill="#C4C4C4" />
                   <circle cx="2" cy="15" r="2" fill="#C4C4C4" />
                 </svg>
               </button>
             </div>
-            <div className={`_feed_timeline_dropdown _timeline_dropdown${dropdownOpen ? " show" : ""}`}>
+            <div
+              className={`_feed_timeline_dropdown _timeline_dropdown${dropdownOpen ? " show" : ""}`}
+            >
               <ul className="_feed_timeline_dropdown_list">
                 <TimelineDropdownItem icon={SaveIcon} label="Save Post" />
-                <TimelineDropdownItem icon={NotifyIcon} label="Turn On Notification" />
+                <TimelineDropdownItem
+                  icon={NotifyIcon}
+                  label="Turn On Notification"
+                />
                 <TimelineDropdownItem icon={HideIcon} label="Hide" />
                 {isOwner && (
                   <>
                     <TimelineDropdownItem icon={EditIcon} label="Edit Post" />
-                    <TimelineDropdownItem icon={DeleteIcon} label="Delete Post" onClick={handleDelete} />
+                    <TimelineDropdownItem
+                      icon={DeleteIcon}
+                      label="Delete Post"
+                      onClick={handleDelete}
+                    />
                   </>
                 )}
               </ul>
@@ -144,7 +188,10 @@ function TimelinePost({ post }) {
 
         {/* ── Post Content ── */}
         {post.content && (
-          <h4 className="_feed_inner_timeline_post_title" style={{ fontWeight: 400, fontSize: "15px", lineHeight: "1.6" }}>
+          <h4
+            className="_feed_inner_timeline_post_title"
+            style={{ fontWeight: 400, fontSize: "15px", lineHeight: "1.6" }}
+          >
             {post.content}
           </h4>
         )}
@@ -152,7 +199,15 @@ function TimelinePost({ post }) {
         {/* ── Post Image ── */}
         {post.imageUrl && (
           <div className="_feed_inner_timeline_image">
-            <Image src={post.imageUrl} alt="" width={600} height={400} className="_time_img" priority unoptimized />
+            <Image
+              src={post.imageUrl}
+              alt=""
+              width={600}
+              height={400}
+              className="_time_img"
+              priority
+              unoptimized
+            />
           </div>
         )}
       </div>
@@ -173,19 +228,33 @@ function TimelinePost({ post }) {
                     height={18}
                     className={i === 0 ? "_react_img1" : "_react_img"}
                     title={`${reactorName} reacted with ${r.type}`}
-                    style={{ width: "18px", height: "18px", borderRadius: "50%", marginLeft: i > 0 ? "-6px" : "0", border: "2px solid #fff" }}
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      marginLeft: i > 0 ? "-6px" : "0",
+                      border: "2px solid #fff",
+                    }}
                   />
                 );
               })}
               {reactionsCount > 3 && (
-                <p className="_feed_inner_timeline_total_reacts_para">{reactionsCount}</p>
+                <p className="_feed_inner_timeline_total_reacts_para">
+                  {reactionsCount}
+                </p>
               )}
             </>
           ) : null}
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
           <p className="_feed_inner_timeline_total_reacts_para1">
-            <Link href="#0" onClick={(e) => { e.preventDefault(); setShowComments((s) => !s); }}>
+            <Link
+              href="#0"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowComments((s) => !s);
+              }}
+            >
               <span>{localCommentsCount}</span> Comment
             </Link>
           </p>
@@ -196,7 +265,11 @@ function TimelinePost({ post }) {
       </div>
 
       {/* ── Reaction Bar (preserve original design) ── */}
-      <div className="_feed_inner_timeline_reaction" ref={reactionRef} style={{ position: "relative" }}>
+      <div
+        className="_feed_inner_timeline_reaction"
+        ref={reactionRef}
+        style={{ position: "relative" }}
+      >
         {/* Haha/Reaction button — keeps original class */}
         <div style={{ position: "relative" }}>
           <button
@@ -208,17 +281,37 @@ function TimelinePost({ post }) {
             <span className="_feed_inner_timeline_reaction_link">
               <span>
                 {myReaction ? (
-                  <>{currentReactionInfo?.emoji} {currentReactionInfo?.label}</>
+                  <>
+                    {currentReactionInfo?.emoji} {currentReactionInfo?.label}
+                  </>
                 ) : (
                   <>
                     {/* Original SVG when no reaction */}
-                    <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" viewBox="0 0 19 19">
-                      <path fill="#FFCC4D" d="M9.5 19a9.5 9.5 0 100-19 9.5 9.5 0 000 19z" />
-                      <path fill="#664500" d="M9.5 11.083c-1.912 0-3.181-.222-4.75-.527-.358-.07-1.056 0-1.056 1.055 0 2.111 2.425 4.75 5.806 4.75 3.38 0 5.805-2.639 5.805-4.75 0-1.055-.697-1.125-1.055-1.055-1.57.305-2.838.527-4.75.527z" />
-                      <path fill="#fff" d="M4.75 11.611s1.583.528 4.75.528 4.75-.528 4.75-.528-1.056 2.111-4.75 2.111-4.75-2.11-4.75-2.11z" />
-                      <path fill="#664500" d="M6.333 8.972c.729 0 1.32-.827 1.32-1.847s-.591-1.847-1.32-1.847c-.729 0-1.32.827-1.32 1.847s.591 1.847 1.32 1.847zM12.667 8.972c.729 0 1.32-.827 1.32-1.847s-.591-1.847-1.32-1.847c-.729 0-1.32.827-1.32 1.847s.591 1.847 1.32 1.847z" />
-                    </svg>
-                    {" "}Haha
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="19"
+                      height="19"
+                      fill="none"
+                      viewBox="0 0 19 19"
+                    >
+                      <path
+                        fill="#FFCC4D"
+                        d="M9.5 19a9.5 9.5 0 100-19 9.5 9.5 0 000 19z"
+                      />
+                      <path
+                        fill="#664500"
+                        d="M9.5 11.083c-1.912 0-3.181-.222-4.75-.527-.358-.07-1.056 0-1.056 1.055 0 2.111 2.425 4.75 5.806 4.75 3.38 0 5.805-2.639 5.805-4.75 0-1.055-.697-1.125-1.055-1.055-1.57.305-2.838.527-4.75.527z"
+                      />
+                      <path
+                        fill="#fff"
+                        d="M4.75 11.611s1.583.528 4.75.528 4.75-.528 4.75-.528-1.056 2.111-4.75 2.111-4.75-2.11-4.75-2.11z"
+                      />
+                      <path
+                        fill="#664500"
+                        d="M6.333 8.972c.729 0 1.32-.827 1.32-1.847s-.591-1.847-1.32-1.847c-.729 0-1.32.827-1.32 1.847s.591 1.847 1.32 1.847zM12.667 8.972c.729 0 1.32-.827 1.32-1.847s-.591-1.847-1.32-1.847c-.729 0-1.32.827-1.32 1.847s.591 1.847 1.32 1.847z"
+                      />
+                    </svg>{" "}
+                    Haha
                   </>
                 )}
               </span>
@@ -228,7 +321,10 @@ function TimelinePost({ post }) {
           {/* Reaction Picker Popup */}
           {showReactions && (
             <div
-              onMouseEnter={() => { if (reactionTimeout.current) clearTimeout(reactionTimeout.current); }}
+              onMouseEnter={() => {
+                if (reactionTimeout.current)
+                  clearTimeout(reactionTimeout.current);
+              }}
               onMouseLeave={() => setShowReactions(false)}
               style={{
                 position: "absolute",
@@ -250,7 +346,8 @@ function TimelinePost({ post }) {
                   onClick={() => handleReaction(r.type)}
                   title={r.label}
                   style={{
-                    background: myReaction === r.type ? "#e7f3ff" : "transparent",
+                    background:
+                      myReaction === r.type ? "#e7f3ff" : "transparent",
                     border: "none",
                     borderRadius: "50%",
                     fontSize: "24px",
@@ -258,8 +355,12 @@ function TimelinePost({ post }) {
                     padding: "4px",
                     transition: "transform 0.15s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.3)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
                 >
                   {r.emoji}
                 </button>
@@ -275,9 +376,24 @@ function TimelinePost({ post }) {
         >
           <span className="_feed_inner_timeline_reaction_link">
             <span>
-              <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21">
-                <path stroke="#000" d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z" />
-                <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" d="M6.938 9.313h7.125M10.5 14.063h3.563" />
+              <svg
+                className="_reaction_svg"
+                xmlns="http://www.w3.org/2000/svg"
+                width="21"
+                height="21"
+                fill="none"
+                viewBox="0 0 21 21"
+              >
+                <path
+                  stroke="#000"
+                  d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z"
+                />
+                <path
+                  stroke="#000"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6.938 9.313h7.125M10.5 14.063h3.563"
+                />
               </svg>
               Comment
             </span>
@@ -288,8 +404,19 @@ function TimelinePost({ post }) {
         <button className="_feed_inner_timeline_reaction_share _feed_reaction">
           <span className="_feed_inner_timeline_reaction_link">
             <span>
-              <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="24" height="21" fill="none" viewBox="0 0 24 21">
-                <path stroke="#000" strokeLinejoin="round" d="M23 10.5L12.917 1v5.429C3.267 6.429 1 13.258 1 20c2.785-3.52 5.248-5.429 11.917-5.429V20L23 10.5z" />
+              <svg
+                className="_reaction_svg"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="21"
+                fill="none"
+                viewBox="0 0 24 21"
+              >
+                <path
+                  stroke="#000"
+                  strokeLinejoin="round"
+                  d="M23 10.5L12.917 1v5.429C3.267 6.429 1 13.258 1 20c2.785-3.52 5.248-5.429 11.917-5.429V20L23 10.5z"
+                />
               </svg>
               Share
             </span>

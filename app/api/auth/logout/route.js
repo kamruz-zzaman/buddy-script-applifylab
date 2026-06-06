@@ -1,4 +1,8 @@
-import { clearAuthCookie, successResponse, errorResponse } from "@/lib/utils/auth";
+import {
+  clearAuthCookie,
+  successResponse,
+  errorResponse,
+} from "@/lib/utils/auth";
 
 export async function POST() {
   try {

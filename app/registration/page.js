@@ -70,16 +70,61 @@ export default function RegistrationPage() {
   return (
     <section className="_social_registration_wrapper _layout_main_wrapper">
       <div className="_shape_one">
-        <Image src="/assets/images/shape1.svg" alt="" width={300} height={300} unoptimized className="_shape_img" style={{ width: "100%", height: "auto" }} />
-        <Image src="/assets/images/dark_shape.svg" alt="" width={300} height={300} unoptimized className="_dark_shape" />
+        <Image
+          src="/assets/images/shape1.svg"
+          alt=""
+          width={300}
+          height={300}
+          unoptimized
+          className="_shape_img"
+          style={{ width: "100%", height: "auto" }}
+        />
+        <Image
+          src="/assets/images/dark_shape.svg"
+          alt=""
+          width={300}
+          height={300}
+          unoptimized
+          className="_dark_shape"
+        />
       </div>
       <div className="_shape_two">
-        <Image src="/assets/images/shape2.svg" alt="" width={300} height={300} unoptimized className="_shape_img" style={{ width: "100%", height: "auto" }} />
-        <Image src="/assets/images/dark_shape1.svg" alt="" width={300} height={300} unoptimized className="_dark_shape _dark_shape_opacity" />
+        <Image
+          src="/assets/images/shape2.svg"
+          alt=""
+          width={300}
+          height={300}
+          unoptimized
+          className="_shape_img"
+          style={{ width: "100%", height: "auto" }}
+        />
+        <Image
+          src="/assets/images/dark_shape1.svg"
+          alt=""
+          width={300}
+          height={300}
+          unoptimized
+          className="_dark_shape _dark_shape_opacity"
+        />
       </div>
       <div className="_shape_three">
-        <Image src="/assets/images/shape3.svg" alt="" width={300} height={300} unoptimized className="_shape_img" style={{ width: "100%", height: "auto" }} />
-        <Image src="/assets/images/dark_shape2.svg" alt="" width={300} height={300} unoptimized className="_dark_shape _dark_shape_opacity" />
+        <Image
+          src="/assets/images/shape3.svg"
+          alt=""
+          width={300}
+          height={300}
+          unoptimized
+          className="_shape_img"
+          style={{ width: "100%", height: "auto" }}
+        />
+        <Image
+          src="/assets/images/dark_shape2.svg"
+          alt=""
+          width={300}
+          height={300}
+          unoptimized
+          className="_dark_shape _dark_shape_opacity"
+        />
       </div>
       <div className="_social_registration_wrap">
         <div className="container">
@@ -87,17 +132,35 @@ export default function RegistrationPage() {
             <div className="col-xl-8 col-lg-8 col-md-12 col-sm-12">
               <div className="_social_registration_right">
                 <div className="_social_registration_right_image">
-                  <Image src="/assets/images/registration.png" alt="Image" width={633} height={500} />
+                  <Image
+                    src="/assets/images/registration.png"
+                    alt="Image"
+                    width={633}
+                    height={500}
+                  />
                 </div>
                 <div className="_social_registration_right_image_dark">
-                  <Image src="/assets/images/registration1.png" alt="Image" width={633} height={500} />
+                  <Image
+                    src="/assets/images/registration1.png"
+                    alt="Image"
+                    width={633}
+                    height={500}
+                  />
                 </div>
               </div>
             </div>
             <div className="col-xl-4 col-lg-4 col-md-12 col-sm-12">
               <div className="_social_registration_content">
                 <div className="_social_registration_right_logo _mar_b28">
-                  <Image src="/assets/images/logo.svg" alt="Image" width={170} height={40} unoptimized className="_right_logo" style={{ height: "auto" }} />
+                  <Image
+                    src="/assets/images/logo.svg"
+                    alt="Image"
+                    width={170}
+                    height={40}
+                    unoptimized
+                    className="_right_logo"
+                    style={{ height: "auto" }}
+                  />
                 </div>
                 <p className="_social_registration_content_para _mar_b8">
                   Get Started Now
@@ -109,7 +172,15 @@ export default function RegistrationPage() {
                   type="button"
                   className="_social_registration_content_btn _mar_b40"
                 >
-                  <Image src="/assets/images/google.svg" alt="Image" width={20} height={20} unoptimized className="_google_img" style={{ height: "auto" }} />{" "}
+                  <Image
+                    src="/assets/images/google.svg"
+                    alt="Image"
+                    width={20}
+                    height={20}
+                    unoptimized
+                    className="_google_img"
+                    style={{ height: "auto" }}
+                  />{" "}
                   <span>Register with google</span>
                 </button>
                 <div className="_social_registration_content_bottom_txt _mar_b40">
@@ -122,7 +193,10 @@ export default function RegistrationPage() {
                   </div>
                 )}
 
-                <form className="_social_registration_form" onSubmit={handleSubmit}>
+                <form
+                  className="_social_registration_form"
+                  onSubmit={handleSubmit}
+                >
                   <div className="row">
                     <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                       <div className="_social_registration_form_input _mar_b14">

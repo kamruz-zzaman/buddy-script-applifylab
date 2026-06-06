@@ -29,8 +29,12 @@ function timeAgo(dateStr) {
 
 function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   const [myReaction, setMyReaction] = useState(null);
-  const [reactionCounts, setReactionCounts] = useState(comment.reactionCounts || {});
-  const [reactionsCount, setReactionsCount] = useState(comment.reactionsCount || 0);
+  const [reactionCounts, setReactionCounts] = useState(
+    comment.reactionCounts || {},
+  );
+  const [reactionsCount, setReactionsCount] = useState(
+    comment.reactionsCount || 0,
+  );
   const [showReplyBox, setShowReplyBox] = useState(false);
 
   const handleReaction = async () => {
@@ -49,18 +53,30 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
     } catch {}
   };
 
-  const handleReply = useCallback((newComment) => {
-    setShowReplyBox(false);
-    if (onReplyAdded) onReplyAdded(newComment);
-  }, [onReplyAdded]);
+  const handleReply = useCallback(
+    (newComment) => {
+      setShowReplyBox(false);
+      if (onReplyAdded) onReplyAdded(newComment);
+    },
+    [onReplyAdded],
+  );
 
   const totalReacts = reactionsCount;
 
   return (
-    <div className="_comment_main" style={{ paddingLeft: depth > 0 ? "30px" : "0" }}>
+    <div
+      className="_comment_main"
+      style={{ paddingLeft: depth > 0 ? "30px" : "0" }}
+    >
       <div className="_comment_image">
         <Link href="#0" className="_comment_image_link">
-          <Image src="/assets/images/txt_img.png" alt="" width={800} height={600} className="_comment_img1" />
+          <Image
+            src="/assets/images/txt_img.png"
+            alt=""
+            width={800}
+            height={600}
+            className="_comment_img1"
+          />
         </Link>
       </div>
       <div className="_comment_area">
@@ -68,7 +84,9 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
           <div className="_comment_details_top">
             <div className="_comment_name">
               <Link href="#0">
-                <h4 className="_comment_name_title">{comment.author?.firstName} {comment.author?.lastName}</h4>
+                <h4 className="_comment_name_title">
+                  {comment.author?.firstName} {comment.author?.lastName}
+                </h4>
               </Link>
             </div>
           </div>
@@ -79,18 +97,34 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
           </div>
           {comment.imageUrl && (
             <div style={{ marginTop: "6px" }}>
-              <Image src={comment.imageUrl} alt="" width={200} height={150} style={{ borderRadius: "8px", maxWidth: "100%", height: "auto" }} unoptimized />
+              <Image
+                src={comment.imageUrl}
+                alt=""
+                width={200}
+                height={150}
+                style={{
+                  borderRadius: "8px",
+                  maxWidth: "100%",
+                  height: "auto",
+                }}
+                unoptimized
+              />
             </div>
           )}
           <div className="_total_reactions">
             <div className="_total_react">
-              {reactionsCount > 0 && Object.entries(reactionCounts).map(([type, count]) =>
-                count > 0 ? (
-                  <span key={type} style={{ fontSize: "14px", marginRight: "2px" }} title={`${count} ${type}`}>
-                    {REACTIONS.find((r) => r.type === type)?.emoji}
-                  </span>
-                ) : null
-              )}
+              {reactionsCount > 0 &&
+                Object.entries(reactionCounts).map(([type, count]) =>
+                  count > 0 ? (
+                    <span
+                      key={type}
+                      style={{ fontSize: "14px", marginRight: "2px" }}
+                      title={`${count} ${type}`}
+                    >
+                      {REACTIONS.find((r) => r.type === type)?.emoji}
+                    </span>
+                  ) : null,
+                )}
             </div>
             {totalReacts > 0 && <span className="_total">{totalReacts}</span>}
           </div>
@@ -98,25 +132,46 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
             <div className="_comment_reply_num">
               <ul className="_comment_reply_list">
                 <li>
-                  <span style={{ cursor: "pointer", color: myReaction ? "#0d6efd" : "#65676b", fontWeight: myReaction ? 600 : 400 }} onClick={handleReaction}>
-                    {myReaction ? `${REACTIONS.find(r => r.type === myReaction)?.emoji} ${REACTIONS.find(r => r.type === myReaction)?.label}` : "Like"}.
+                  <span
+                    style={{
+                      cursor: "pointer",
+                      color: myReaction ? "#0d6efd" : "#65676b",
+                      fontWeight: myReaction ? 600 : 400,
+                    }}
+                    onClick={handleReaction}
+                  >
+                    {myReaction
+                      ? `${REACTIONS.find((r) => r.type === myReaction)?.emoji} ${REACTIONS.find((r) => r.type === myReaction)?.label}`
+                      : "Like"}
+                    .
                   </span>
                 </li>
                 <li>
-                  <span style={{ cursor: "pointer" }} onClick={() => setShowReplyBox((s) => !s)}>Reply.</span>
+                  <span
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setShowReplyBox((s) => !s)}
+                  >
+                    Reply.
+                  </span>
                 </li>
                 <li>
                   <span>Share</span>
                 </li>
                 <li>
-                  <span className="_time_link">.{timeAgo(comment.createdAt)}</span>
+                  <span className="_time_link">
+                    .{timeAgo(comment.createdAt)}
+                  </span>
                 </li>
               </ul>
             </div>
           </div>
         </div>
         {showReplyBox && (
-          <CommentBox postId={postId} parentId={comment._id} onCommentAdded={handleReply} />
+          <CommentBox
+            postId={postId}
+            parentId={comment._id}
+            onCommentAdded={handleReply}
+          />
         )}
       </div>
     </div>
@@ -129,22 +184,28 @@ export default function CommentSection({ postId }) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
-  const fetchComments = useCallback(async (pageNum = 1) => {
-    try {
-      const res = await fetch(`/api/posts/${postId}/comments?page=${pageNum}&limit=10`);
-      const data = await res.json();
-      if (data?.success) {
-        if (pageNum === 1) {
-          setComments(data.data.comments);
-        } else {
-          setComments((prev) => [...prev, ...data.data.comments]);
+  const fetchComments = useCallback(
+    async (pageNum = 1) => {
+      try {
+        const res = await fetch(
+          `/api/posts/${postId}/comments?page=${pageNum}&limit=10`,
+        );
+        const data = await res.json();
+        if (data?.success) {
+          if (pageNum === 1) {
+            setComments(data.data.comments);
+          } else {
+            setComments((prev) => [...prev, ...data.data.comments]);
+          }
+          setHasMore(data.data.pagination.hasMore);
         }
-        setHasMore(data.data.pagination.hasMore);
+      } catch {
+      } finally {
+        setLoading(false);
       }
-    } catch {} finally {
-      setLoading(false);
-    }
-  }, [postId]);
+    },
+    [postId],
+  );
 
   useEffect(() => {
     fetchComments(1);
@@ -162,7 +223,9 @@ export default function CommentSection({ postId }) {
   if (loading) {
     return (
       <div className="_timline_comment_main">
-        <p style={{ fontSize: "13px", color: "#65676b", padding: "12px 24px" }}>Loading comments...</p>
+        <p style={{ fontSize: "13px", color: "#65676b", padding: "12px 24px" }}>
+          Loading comments...
+        </p>
       </div>
     );
   }
@@ -173,22 +236,40 @@ export default function CommentSection({ postId }) {
     <div className="_timline_comment_main">
       {hasMore && page === 1 && (
         <div className="_previous_comment">
-          <button type="button" className="_previous_comment_txt" onClick={loadMore}>
+          <button
+            type="button"
+            className="_previous_comment_txt"
+            onClick={loadMore}
+          >
             View previous comments
           </button>
         </div>
       )}
       {comments.map((comment) => (
         <div key={comment._id}>
-          <SingleComment comment={comment} postId={postId} onReplyAdded={handleReplyAdded} />
+          <SingleComment
+            comment={comment}
+            postId={postId}
+            onReplyAdded={handleReplyAdded}
+          />
           {comment.replies?.map((reply) => (
-            <SingleComment key={reply._id} comment={reply} postId={postId} onReplyAdded={handleReplyAdded} depth={1} />
+            <SingleComment
+              key={reply._id}
+              comment={reply}
+              postId={postId}
+              onReplyAdded={handleReplyAdded}
+              depth={1}
+            />
           ))}
         </div>
       ))}
       {hasMore && page > 1 && (
         <div className="_previous_comment">
-          <button type="button" className="_previous_comment_txt" onClick={loadMore}>
+          <button
+            type="button"
+            className="_previous_comment_txt"
+            onClick={loadMore}
+          >
             Load more comments
           </button>
         </div>

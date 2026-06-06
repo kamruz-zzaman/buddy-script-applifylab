@@ -28,7 +28,7 @@ const ReactionSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const UserSchema = new mongoose.Schema(
@@ -38,7 +38,7 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const PostSchema = new mongoose.Schema(
@@ -65,7 +65,7 @@ const PostSchema = new mongoose.Schema(
     reactionsCount: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 PostSchema.index({ createdAt: -1 });
@@ -78,18 +78,74 @@ const Post = mongoose.models.Post || mongoose.model("Post", PostSchema);
 // ─── Data generators ────────────────────────────────────────────────────────
 
 const FIRST_NAMES = [
-  "Alice", "Bob", "Charlie", "Diana", "Eve", "Frank", "Grace", "Henry",
-  "Iris", "Jack", "Kate", "Leo", "Mia", "Noah", "Olivia", "Paul",
-  "Quinn", "Ryan", "Sara", "Tom", "Uma", "Victor", "Wendy", "Xavier",
-  "Yara", "Zack", "Aria", "Blake", "Chloe", "Derek", "Elena", "Felix",
-  "Georgia", "Hugo", "Ivy", "Jasper", "Kylie", "Liam", "Maya", "Nathan",
+  "Alice",
+  "Bob",
+  "Charlie",
+  "Diana",
+  "Eve",
+  "Frank",
+  "Grace",
+  "Henry",
+  "Iris",
+  "Jack",
+  "Kate",
+  "Leo",
+  "Mia",
+  "Noah",
+  "Olivia",
+  "Paul",
+  "Quinn",
+  "Ryan",
+  "Sara",
+  "Tom",
+  "Uma",
+  "Victor",
+  "Wendy",
+  "Xavier",
+  "Yara",
+  "Zack",
+  "Aria",
+  "Blake",
+  "Chloe",
+  "Derek",
+  "Elena",
+  "Felix",
+  "Georgia",
+  "Hugo",
+  "Ivy",
+  "Jasper",
+  "Kylie",
+  "Liam",
+  "Maya",
+  "Nathan",
 ];
 
 const LAST_NAMES = [
-  "Anderson", "Brown", "Clark", "Davis", "Evans", "Foster", "Garcia",
-  "Harris", "Irwin", "Jones", "King", "Lee", "Miller", "Nelson",
-  "Owens", "Parker", "Quinn", "Roberts", "Smith", "Taylor",
-  "Underwood", "Vance", "Williams", "Young", "Zhang",
+  "Anderson",
+  "Brown",
+  "Clark",
+  "Davis",
+  "Evans",
+  "Foster",
+  "Garcia",
+  "Harris",
+  "Irwin",
+  "Jones",
+  "King",
+  "Lee",
+  "Miller",
+  "Nelson",
+  "Owens",
+  "Parker",
+  "Quinn",
+  "Roberts",
+  "Smith",
+  "Taylor",
+  "Underwood",
+  "Vance",
+  "Williams",
+  "Young",
+  "Zhang",
 ];
 
 const POST_CONTENTS = [
@@ -131,13 +187,18 @@ async function seed() {
   const targetPosts = parseInt(process.argv[2]) || 100000;
   const BATCH_SIZE = 10000;
 
-  console.log(`\n🚀 Starting bulk seed: ${targetPosts.toLocaleString()} posts\n`);
+  console.log(
+    `\n🚀 Starting bulk seed: ${targetPosts.toLocaleString()} posts\n`,
+  );
 
   await mongoose.connect(MONGODB_URI);
   console.log("✅ Connected to MongoDB\n");
 
   // Step 1: Create users (target ~10% of post count, min 100, max 50000)
-  const userCount = Math.min(50000, Math.max(100, Math.floor(targetPosts * 0.1)));
+  const userCount = Math.min(
+    50000,
+    Math.max(100, Math.floor(targetPosts * 0.1)),
+  );
   console.log(`📝 Creating ${userCount.toLocaleString()} users...`);
 
   const existingUserCount = await User.countDocuments();
@@ -159,7 +220,9 @@ async function seed() {
       if (userBatches.length >= BATCH_SIZE || i === needsNew - 1) {
         const created = await User.insertMany(userBatches, { ordered: false });
         users.push(...created);
-        process.stdout.write(`\r   Created: ${users.length + existingUserCount} users`);
+        process.stdout.write(
+          `\r   Created: ${users.length + existingUserCount} users`,
+        );
         userBatches.length = 0;
       }
     }
@@ -172,7 +235,9 @@ async function seed() {
   // Step 2: Remove existing posts (optional - comment out to append)
   const existingPostCount = await Post.countDocuments();
   if (existingPostCount > 0) {
-    console.log(`⚠️  Found ${existingPostCount.toLocaleString()} existing posts.`);
+    console.log(
+      `⚠️  Found ${existingPostCount.toLocaleString()} existing posts.`,
+    );
     console.log(`   Appending new posts...\n`);
   }
 
@@ -203,7 +268,14 @@ async function seed() {
       });
     }
 
-    const reactionCounts = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+    const reactionCounts = {
+      like: 0,
+      love: 0,
+      haha: 0,
+      wow: 0,
+      sad: 0,
+      angry: 0,
+    };
     reactions.forEach((r) => {
       reactionCounts[r.type] = (reactionCounts[r.type] || 0) + 1;
     });
@@ -228,17 +300,21 @@ async function seed() {
       await Post.insertMany(postBatches, { ordered: false });
       created += postBatches.length;
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      const rate = Math.floor(created / (Date.now() - startTime) * 1000);
+      const rate = Math.floor((created / (Date.now() - startTime)) * 1000);
       process.stdout.write(
-        `\r   Created: ${created.toLocaleString()} / ${targetPosts.toLocaleString()} (${rate}/s, ${elapsed}s)`
+        `\r   Created: ${created.toLocaleString()} / ${targetPosts.toLocaleString()} (${rate}/s, ${elapsed}s)`,
       );
       postBatches.length = 0;
     }
   }
 
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`\n\n✅ Done! Created ${created.toLocaleString()} posts in ${totalTime}s`);
-  console.log(`   Rate: ${Math.floor(created / (Date.now() - startTime) * 1000)} posts/sec\n`);
+  console.log(
+    `\n\n✅ Done! Created ${created.toLocaleString()} posts in ${totalTime}s`,
+  );
+  console.log(
+    `   Rate: ${Math.floor((created / (Date.now() - startTime)) * 1000)} posts/sec\n`,
+  );
 
   // Step 4: Summary
   const finalUsers = await User.countDocuments();
