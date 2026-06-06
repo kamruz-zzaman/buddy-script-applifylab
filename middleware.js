@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/utils/auth";
 import { rateLimit } from "@/lib/utils/rateLimit";
 
 // Paths that do NOT require authentication
-const publicPaths = ["/login", "/registration", "/api/auth/login", "/api/auth/register"];
+const publicPaths = ["/login", "/registration", "/api/auth/login", "/api/auth/register", "/api/seed"];
 
 // Paths that ALWAYS require authentication
 const protectedPaths = ["/feed"];
@@ -71,7 +71,7 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     if (!decoded) {
       if (pathname.startsWith("/api/")) {
         return Response.json(

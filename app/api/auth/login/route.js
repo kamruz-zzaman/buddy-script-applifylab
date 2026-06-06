@@ -33,7 +33,7 @@ export async function POST(request) {
     }
 
     // Generate JWT and set cookie
-    const token = generateToken(user._id.toString());
+    const token = await generateToken(user._id.toString());
     await setAuthCookie(token);
 
     return successResponse({
