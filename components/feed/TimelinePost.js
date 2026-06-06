@@ -194,7 +194,7 @@ function TimelinePost({ post }) {
       {showComments && (
         <>
           <CommentBox postId={post._id} onCommentAdded={onCommentAdded} />
-          <CommentsList postId={post._id} />
+          <CommentsList postId={post._id} refreshKey={localCommentsCount} />
         </>
       )}
     </div>

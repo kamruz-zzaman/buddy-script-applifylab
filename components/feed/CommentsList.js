@@ -159,7 +159,7 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   );
 }
 
-export default function CommentsList({ postId }) {
+export default function CommentsList({ postId, refreshKey }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -179,7 +179,7 @@ export default function CommentsList({ postId }) {
 
   useEffect(() => {
     fetchComments();
-  }, [fetchComments]);
+  }, [fetchComments, refreshKey]);
 
   const handleNewComment = useCallback(async () => {
     await fetchComments();
