@@ -18,20 +18,20 @@ function LayoutMiddle() {
 
   const { ref: sentinelRef, inView } = useInView({
     rootMargin: "400px",
-    skip: !hasMore || loadingMore,
+    skip: !hasMore,
   });
 
   const loadingRef = useRef(false);
 
   // Trigger loadMore when sentinel comes into view
   useEffect(() => {
-    if (inView && hasMore && !loadingMore && !loadingRef.current) {
+    if (inView && hasMore && !loadingRef.current) {
       loadingRef.current = true;
       loadMoreRef.current().finally(() => {
         loadingRef.current = false;
       });
     }
-  }, [inView, hasMore, loadingMore]);
+  }, [inView, hasMore]);
 
   // Desktop fallback: if not enough posts to cause scroll, try loading
   useEffect(() => {
