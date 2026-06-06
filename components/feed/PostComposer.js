@@ -134,7 +134,13 @@ function PostComposer() {
 
       {/* Image preview */}
       {previewUrl && (
-        <div style={{ position: "relative", marginTop: "10px", display: "inline-block" }}>
+        <div
+          style={{
+            position: "relative",
+            marginTop: "10px",
+            display: "inline-block",
+          }}
+        >
           <Image
             src={previewUrl}
             alt="Preview"

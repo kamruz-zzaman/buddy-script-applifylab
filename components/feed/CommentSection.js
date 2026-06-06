@@ -178,24 +178,24 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   );
 }
 
-export default function CommentSection({ postId }) {
+export default function CommentSection({ postId, refreshKey }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
   const fetchComments = useCallback(
-    async (pageNum = 1) => {
+    async (pageNum = 1, append = false) => {
       try {
         const res = await fetch(
-          `/api/posts/${postId}/comments?page=${pageNum}&limit=10`,
+          `/api/posts/${postId}/comments?page=${pageNum}&limit=20`,
         );
         const data = await res.json();
         if (data?.success) {
-          if (pageNum === 1) {
-            setComments(data.data.comments);
-          } else {
+          if (append) {
             setComments((prev) => [...prev, ...data.data.comments]);
+          } else {
+            setComments(data.data.comments);
           }
           setHasMore(data.data.pagination.hasMore);
         }
@@ -208,17 +208,27 @@ export default function CommentSection({ postId }) {
   );
 
   useEffect(() => {
-    fetchComments(1);
-  }, [fetchComments]);
+    setLoading(true);
+    setPage(1);
+    fetchComments(1, false);
+  }, [fetchComments, refreshKey]);
 
   const handleReplyAdded = useCallback(() => {
-    fetchComments(1);
+    fetchComments(1, false);
   }, [fetchComments]);
 
-  const loadMore = () => {
-    setPage((p) => p + 1);
-    fetchComments(page + 1);
-  };
+  const loadMore = useCallback(() => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchComments(nextPage, true);
+  }, [page, fetchComments]);
+
+  // Auto-load more if we have few comments and more available
+  useEffect(() => {
+    if (!loading && hasMore && comments.length < 10 && page === 1) {
+      loadMore();
+    }
+  }, [loading, hasMore, comments.length, page, loadMore]);
 
   if (loading) {
     return (

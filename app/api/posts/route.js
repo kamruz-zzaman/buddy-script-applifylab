@@ -49,7 +49,7 @@ export async function POST(request) {
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
-          }
+          },
         );
         Readable.from(buffer).pipe(uploadStream);
       });

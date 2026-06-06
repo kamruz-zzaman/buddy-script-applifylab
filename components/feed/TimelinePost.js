@@ -38,6 +38,7 @@ function TimelinePost({ post }) {
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(post?.commentsCount || 0);
+  const [commentRefreshKey, setCommentRefreshKey] = useState(0);
   const dropdownRef = useRef(null);
   const reactionRef = useRef(null);
   const reactionTimeout = useRef(null);
@@ -82,6 +83,7 @@ function TimelinePost({ post }) {
   const onCommentAdded = useCallback(() => {
     setLocalCommentsCount((c) => c + 1);
     incrementCommentsCount(post._id);
+    setCommentRefreshKey((k) => k + 1);
   }, [post._id, incrementCommentsCount]);
 
   const topReactors = (post?.reactions || []).slice(0, 3);
@@ -260,7 +262,7 @@ function TimelinePost({ post }) {
       {showComments && (
         <>
           <CommentBox postId={post._id} onCommentAdded={onCommentAdded} />
-          <CommentSection postId={post._id} />
+          <CommentSection postId={post._id} refreshKey={commentRefreshKey} />
         </>
       )}
     </div>
