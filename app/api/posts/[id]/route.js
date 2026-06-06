@@ -17,6 +17,7 @@ export async function GET(request, { params }) {
     const post = await Post.findById(id)
       .populate("author", "firstName lastName")
       .populate("reactions.user", "firstName lastName")
+      .setOptions({ strictPopulate: false })
       .lean();
 
     if (!post) {

@@ -63,6 +63,7 @@ export async function GET(request) {
         .limit(limit)
         .populate("author", "firstName lastName")
         .populate("reactions.user", "firstName lastName")
+        .setOptions({ strictPopulate: false })
         .lean(),
       Post.countDocuments(query),
     ]);

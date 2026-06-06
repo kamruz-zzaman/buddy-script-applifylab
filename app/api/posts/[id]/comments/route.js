@@ -37,6 +37,7 @@ export async function GET(request, { params }) {
         .limit(limit)
         .populate("author", "firstName lastName")
         .populate("reactions.user", "firstName lastName")
+        .setOptions({ strictPopulate: false })
         .lean(),
       Comment.countDocuments({ post: postId, parent: null }),
     ]);
@@ -47,6 +48,7 @@ export async function GET(request, { params }) {
         const replies = await Comment.find({ parent: comment._id })
           .sort({ createdAt: 1 })
           .populate("author", "firstName lastName")
+          .setOptions({ strictPopulate: false })
           .populate("reactions.user", "firstName lastName")
           .lean();
         return { ...comment, replies };
