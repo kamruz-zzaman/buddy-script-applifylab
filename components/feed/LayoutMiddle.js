@@ -22,6 +22,8 @@ function LayoutMiddle() {
   });
 
   const loadingRef = useRef(false);
+  const autoLoadCount = useRef(0);
+  const MAX_AUTO_LOADS = 5;
 
   // Trigger loadMore when sentinel comes into view
   useEffect(() => {
@@ -34,17 +36,26 @@ function LayoutMiddle() {
   }, [inView, hasMore]);
 
   // Desktop fallback: if not enough posts to cause scroll, try loading
+  // Limited to MAX_AUTO_LOADS consecutive loads to prevent endless chaining
   useEffect(() => {
-    if (initialLoading || posts.length === 0 || !hasMore || loadingMore) return;
+    if (initialLoading || posts.length === 0 || !hasMore) return;
+    if (loadingMore || autoLoadCount.current >= MAX_AUTO_LOADS) return;
+
     const timer = setTimeout(() => {
-      const pageBottom = document.documentElement.scrollHeight;
-      const viewBottom = window.innerHeight + window.scrollY;
-      if (pageBottom - viewBottom < 800) {
-        loadMoreRef.current();
-      }
-    }, 500);
+      autoLoadCount.current++;
+      loadMoreRef.current();
+    }, 1000);
     return () => clearTimeout(timer);
-  }, [initialLoading, posts.length, hasMore, loadingMore]);
+  }, [initialLoading, posts.length, hasMore]);
+
+  // Reset auto-load counter when user scrolls (real user interaction)
+  useEffect(() => {
+    const onScroll = () => {
+      autoLoadCount.current = 0;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="col-xl-6 col-lg-6 col-md-12 col-sm-12">
