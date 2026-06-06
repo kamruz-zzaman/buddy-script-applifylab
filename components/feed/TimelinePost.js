@@ -24,86 +24,81 @@ function timeAgo(dateStr) {
 }
 
 const REACTIONS = [
-  { type: "like", emoji: "👍", label: "Like", color: "#0d6efd" },
-  { type: "love", emoji: "❤️", label: "Love", color: "#e0245e" },
-  { type: "haha", emoji: "😆", label: "Haha", color: "#f7b928" },
-  { type: "wow", emoji: "😮", label: "Wow", color: "#f7b928" },
-  { type: "sad", emoji: "😢", label: "Sad", color: "#f7b928" },
-  { type: "angry", emoji: "😡", label: "Angry", color: "#e0433e" },
+  { type: "like", emoji: "👍", label: "Like" },
+  { type: "love", emoji: "❤️", label: "Love" },
+  { type: "haha", emoji: "😆", label: "Haha" },
+  { type: "wow", emoji: "😮", label: "Wow" },
+  { type: "sad", emoji: "😢", label: "Sad" },
+  { type: "angry", emoji: "😡", label: "Angry" },
 ];
 
 function TimelinePost({ post }) {
-  const { currentUser, deletePost } = useFeedContext();
+  const { currentUser, togglePostReaction, deletePost, incrementCommentsCount } = useFeedContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
-  const [myReaction, setMyReaction] = useState(null);
-  const [reactionCounts, setReactionCounts] = useState(post?.reactionCounts || {});
-  const [reactionsCount, setReactionsCount] = useState(post?.reactionsCount || 0);
   const [localCommentsCount, setLocalCommentsCount] = useState(post?.commentsCount || 0);
   const dropdownRef = useRef(null);
   const reactionRef = useRef(null);
+  const reactionTimeout = useRef(null);
 
   const isOwner = currentUser?.id === post?.author?._id;
 
-  useEffect(() => {
-    if (post?.reactions && currentUser) {
-      const found = post.reactions.find(
-        (r) => (r.user?._id || r.user) === currentUser.id
-      );
-      setMyReaction(found?.type || null);
-    }
-  }, [post, currentUser]);
+  // Determine my current reaction from post data
+  const myReaction = post?.reactions?.find(
+    (r) => (r.user?._id || r.user) === currentUser?.id
+  )?.type || null;
+  const reactionCounts = post?.reactionCounts || {};
+  const reactionsCount = post?.reactionsCount || 0;
 
+  const currentReactionInfo = REACTIONS.find((r) => r.type === myReaction);
+
+  // Close dropdowns on outside click
   useEffect(() => {
     if (!dropdownOpen && !showReactions) return;
     const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false);
-      }
-      if (reactionRef.current && !reactionRef.current.contains(e.target)) {
-        setShowReactions(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+      if (reactionRef.current && !reactionRef.current.contains(e.target)) setShowReactions(false);
     };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [dropdownOpen, showReactions]);
 
-  const handleReaction = async (type) => {
+  // Optimistic reaction
+  const handleReaction = (type) => {
     setShowReactions(false);
-    try {
-      const res = await fetch(`/api/posts/${post._id}/like`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
-      const data = await res.json();
-      if (data?.success) {
-        setMyReaction(data.data.myReaction);
-        setReactionCounts(data.data.reactionCounts);
-        setReactionsCount(data.data.reactionsCount);
-      }
-    } catch {}
+    if (reactionTimeout.current) clearTimeout(reactionTimeout.current);
+    togglePostReaction(post._id, type);
   };
 
+  // Show reaction picker with delay on hover
+  const handleReactionHover = () => {
+    reactionTimeout.current = setTimeout(() => setShowReactions(true), 400);
+  };
+  const handleReactionLeave = () => {
+    if (reactionTimeout.current) clearTimeout(reactionTimeout.current);
+  };
+
+  // Optimistic delete
   const handleDelete = async () => {
-    if (confirm("Delete this post?")) {
-      await deletePost(post._id);
-    }
+    if (confirm("Delete this post?")) await deletePost(post._id);
   };
 
+  // Optimistic comment count
   const onCommentAdded = useCallback(() => {
     setLocalCommentsCount((c) => c + 1);
-  }, []);
+    incrementCommentsCount(post._id);
+  }, [post._id, incrementCommentsCount]);
 
-  const currentReaction = REACTIONS.find((r) => r.type === myReaction);
-  const totalReacts = reactionsCount + localCommentsCount;
+  // Top 3 reactors to display
+  const topReactors = (post?.reactions || []).slice(0, 3);
 
   if (!post) return null;
 
   return (
     <div className="_feed_inner_timeline_post_area _b_radious6 _padd_b24 _padd_t24 _mar_b16">
       <div className="_feed_inner_timeline_content _padd_r24 _padd_l24">
+        {/* ── Post Header ── */}
         <div className="_feed_inner_timeline_post_top">
           <div className="_feed_inner_timeline_post_box">
             <div className="_feed_inner_timeline_post_box_image">
@@ -114,10 +109,13 @@ function TimelinePost({ post }) {
                 {post.author?.firstName} {post.author?.lastName}
               </h4>
               <p className="_feed_inner_timeline_post_box_para">
-                {timeAgo(post.createdAt)} . <Link href="#0">{post.isPrivate ? "🔒 Private" : "Public"}</Link>
+                {timeAgo(post.createdAt)} .{" "}
+                <Link href="#0">{post.isPrivate ? "🔒 Private" : "Public"}</Link>
               </p>
             </div>
           </div>
+
+          {/* Dropdown */}
           <div className="_feed_inner_timeline_post_box_dropdown" ref={dropdownRef}>
             <div className="_feed_timeline_post_dropdown">
               <button className="_feed_timeline_post_dropdown_link" onClick={() => setDropdownOpen((p) => !p)}>
@@ -144,12 +142,14 @@ function TimelinePost({ post }) {
           </div>
         </div>
 
+        {/* ── Post Content ── */}
         {post.content && (
           <h4 className="_feed_inner_timeline_post_title" style={{ fontWeight: 400, fontSize: "15px", lineHeight: "1.6" }}>
             {post.content}
           </h4>
         )}
 
+        {/* ── Post Image ── */}
         {post.imageUrl && (
           <div className="_feed_inner_timeline_image">
             <Image src={post.imageUrl} alt="" width={600} height={400} className="_time_img" priority unoptimized />
@@ -157,22 +157,31 @@ function TimelinePost({ post }) {
         )}
       </div>
 
+      {/* ── Reactions Summary (who reacted) ── */}
       <div className="_feed_inner_timeline_total_reacts _padd_r24 _padd_l24 _mar_b26">
         <div className="_feed_inner_timeline_total_reacts_image">
-          {reactionsCount > 0 && (
+          {reactionsCount > 0 ? (
             <>
-              {Object.entries(reactionCounts).map(([type, count]) =>
-                count > 0 ? (
-                  <span key={type} style={{ fontSize: "16px", marginRight: "2px" }} title={`${count} ${type}`}>
-                    {REACTIONS.find((r) => r.type === type)?.emoji}
-                  </span>
-                ) : null
-              )}
-              {totalReacts > 0 && (
-                <p className="_feed_inner_timeline_total_reacts_para">{totalReacts}</p>
+              {topReactors.map((r, i) => {
+                const reactorName = r.user?.firstName || "User";
+                return (
+                  <Image
+                    key={i}
+                    src="/assets/images/post_img.png"
+                    alt={reactorName}
+                    width={18}
+                    height={18}
+                    className={i === 0 ? "_react_img1" : "_react_img"}
+                    title={`${reactorName} reacted with ${r.type}`}
+                    style={{ width: "18px", height: "18px", borderRadius: "50%", marginLeft: i > 0 ? "-6px" : "0", border: "2px solid #fff" }}
+                  />
+                );
+              })}
+              {reactionsCount > 3 && (
+                <p className="_feed_inner_timeline_total_reacts_para">{reactionsCount}</p>
               )}
             </>
-          )}
+          ) : null}
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
           <p className="_feed_inner_timeline_total_reacts_para1">
@@ -186,31 +195,40 @@ function TimelinePost({ post }) {
         </div>
       </div>
 
+      {/* ── Reaction Bar (preserve original design) ── */}
       <div className="_feed_inner_timeline_reaction" ref={reactionRef} style={{ position: "relative" }}>
+        {/* Haha/Reaction button — keeps original class */}
         <div style={{ position: "relative" }}>
           <button
             className={`_feed_inner_timeline_reaction_emoji _feed_reaction${myReaction ? " _feed_reaction_active" : ""}`}
-            onMouseEnter={() => setShowReactions(true)}
-            onClick={() => handleReaction(myReaction ? myReaction : "like")}
+            onMouseEnter={handleReactionHover}
+            onMouseLeave={handleReactionLeave}
+            onClick={() => handleReaction(myReaction || "like")}
           >
             <span className="_feed_inner_timeline_reaction_link">
-              <span style={{ color: currentReaction?.color }}>
-                {currentReaction ? (
-                  <>{currentReaction.emoji} {currentReaction.label}</>
+              <span>
+                {myReaction ? (
+                  <>{currentReactionInfo?.emoji} {currentReactionInfo?.label}</>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}>
-                      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                    {/* Original SVG when no reaction */}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" viewBox="0 0 19 19">
+                      <path fill="#FFCC4D" d="M9.5 19a9.5 9.5 0 100-19 9.5 9.5 0 000 19z" />
+                      <path fill="#664500" d="M9.5 11.083c-1.912 0-3.181-.222-4.75-.527-.358-.07-1.056 0-1.056 1.055 0 2.111 2.425 4.75 5.806 4.75 3.38 0 5.805-2.639 5.805-4.75 0-1.055-.697-1.125-1.055-1.055-1.57.305-2.838.527-4.75.527z" />
+                      <path fill="#fff" d="M4.75 11.611s1.583.528 4.75.528 4.75-.528 4.75-.528-1.056 2.111-4.75 2.111-4.75-2.11-4.75-2.11z" />
+                      <path fill="#664500" d="M6.333 8.972c.729 0 1.32-.827 1.32-1.847s-.591-1.847-1.32-1.847c-.729 0-1.32.827-1.32 1.847s.591 1.847 1.32 1.847zM12.667 8.972c.729 0 1.32-.827 1.32-1.847s-.591-1.847-1.32-1.847c-.729 0-1.32.827-1.32 1.847s.591 1.847 1.32 1.847z" />
                     </svg>
-                    Like
+                    {" "}Haha
                   </>
                 )}
               </span>
             </span>
           </button>
 
+          {/* Reaction Picker Popup */}
           {showReactions && (
             <div
+              onMouseEnter={() => { if (reactionTimeout.current) clearTimeout(reactionTimeout.current); }}
               onMouseLeave={() => setShowReactions(false)}
               style={{
                 position: "absolute",
@@ -250,7 +268,11 @@ function TimelinePost({ post }) {
           )}
         </div>
 
-        <button className="_feed_inner_timeline_reaction_comment _feed_reaction" onClick={() => setShowComments((s) => !s)}>
+        {/* Comment Button — keeps original SVG */}
+        <button
+          className="_feed_inner_timeline_reaction_comment _feed_reaction"
+          onClick={() => setShowComments((s) => !s)}
+        >
           <span className="_feed_inner_timeline_reaction_link">
             <span>
               <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21">
@@ -262,6 +284,7 @@ function TimelinePost({ post }) {
           </span>
         </button>
 
+        {/* Share Button — keeps original SVG */}
         <button className="_feed_inner_timeline_reaction_share _feed_reaction">
           <span className="_feed_inner_timeline_reaction_link">
             <span>
@@ -274,6 +297,7 @@ function TimelinePost({ post }) {
         </button>
       </div>
 
+      {/* ── Comments Section ── */}
       {showComments && (
         <>
           <CommentBox postId={post._id} onCommentAdded={onCommentAdded} />

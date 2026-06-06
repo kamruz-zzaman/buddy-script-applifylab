@@ -36,7 +36,7 @@ export async function POST(request) {
   }
 }
 
-// GET - Fetch feed posts (newest first, public + user's own private)
+// GET - Cursor-based pagination (newest first, public + own private)
 export async function GET(request) {
   try {
     const userId = await getCurrentUserId();
@@ -47,35 +47,39 @@ export async function GET(request) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page")) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit")) || 10));
-    const skip = (page - 1) * limit;
+    const cursor = searchParams.get("cursor"); // last post _id from previous page
 
-    // Build query: public posts + own private posts
+    // Build query
     const query = {
       $or: [{ isPrivate: false }, { isPrivate: true, author: userId }],
     };
 
-    const [posts, total] = await Promise.all([
-      Post.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("author", "firstName lastName")
-        .populate("reactions.user", "firstName lastName")
-        .setOptions({ strictPopulate: false })
-        .lean(),
-      Post.countDocuments(query),
-    ]);
+    // Cursor-based: fetch posts before the cursor
+    if (cursor) {
+      const { default: mongoose } = await import("mongoose");
+      query._id = { $lt: new mongoose.Types.ObjectId(cursor) };
+    }
+
+    const posts = await Post.find(query)
+      .sort({ _id: -1 })
+      .limit(limit + 1) // fetch one extra to check hasMore
+      .populate("author", "firstName lastName")
+      .populate("reactions.user", "firstName lastName")
+      .setOptions({ strictPopulate: false })
+      .lean();
+
+    const hasMore = posts.length > limit;
+    if (hasMore) posts.pop(); // remove the extra item
+
+    const nextCursor = posts.length > 0 ? posts[posts.length - 1]._id : null;
 
     return successResponse({
       posts,
       pagination: {
-        page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasMore: skip + posts.length < total,
+        nextCursor,
+        hasMore,
       },
     });
   } catch (error) {
