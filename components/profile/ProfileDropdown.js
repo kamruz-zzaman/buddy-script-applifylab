@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useFeedContext } from "../common/FeedContext";
 import ProfileDropdownItem from "./ProfileDropdownItem";
 import { SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
 
 function ProfileDropdown() {
+  const { currentUser, logout } = useFeedContext();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -22,13 +24,17 @@ function ProfileDropdown() {
     return () => document.removeEventListener("click", handler);
   }, [open]);
 
+  const userName = currentUser
+    ? `${currentUser.firstName} ${currentUser.lastName}`
+    : "User";
+
   return (
     <div className="_header_nav_profile" ref={containerRef}>
       <div className="_header_nav_profile_image">
-        <Image src="/assets/images/profile.png" alt="Image" width={24} height={24} className="_nav_profile_img" />
+        <Image src="/assets/images/profile.png" alt="Profile" width={24} height={24} className="_nav_profile_img" />
       </div>
       <div className="_header_nav_dropdown">
-        <p className="_header_nav_para">Dylan Field</p>
+        <p className="_header_nav_para">{userName}</p>
         <button
           className="_header_nav_dropdown_btn _dropdown_toggle"
           type="button"
@@ -53,10 +59,10 @@ function ProfileDropdown() {
       >
         <div className="_nav_profile_dropdown_info">
           <div className="_nav_profile_dropdown_image">
-            <Image src="/assets/images/profile.png" alt="Image" width={40} height={40} className="_nav_drop_img" />
+            <Image src="/assets/images/profile.png" alt="Profile" width={40} height={40} className="_nav_drop_img" />
           </div>
           <div className="_nav_profile_dropdown_info_txt">
-            <h4 className="_nav_dropdown_title">Dylan Field</h4>
+            <h4 className="_nav_dropdown_title">{userName}</h4>
             <Link href="#0" className="_nav_drop_profile">
               View Profile
             </Link>
@@ -66,7 +72,26 @@ function ProfileDropdown() {
         <ul className="_nav_dropdown_list">
           <ProfileDropdownItem icon={SettingsIcon} label="Settings" />
           <ProfileDropdownItem icon={HelpIcon} label="Help & Support" />
-          <ProfileDropdownItem icon={LogoutIcon} label="Log Out" />
+          <li>
+            <button
+              onClick={logout}
+              className="_nav_dropdown_link"
+              style={{
+                background: "none",
+                border: "none",
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span className="_nav_dropdown_icon">{LogoutIcon}</span>
+              <span>Log Out</span>
+            </button>
+          </li>
         </ul>
       </div>
     </div>

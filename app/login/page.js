@@ -1,7 +1,54 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (error) setError("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!formData.email || !formData.password) {
+      setError("Email and password are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      router.push("/feed");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="_social_login_wrapper _layout_main_wrapper">
       <div className="_shape_one">
@@ -47,7 +94,14 @@ export default function LoginPage() {
                 <div className="_social_login_content_bottom_txt _mar_b40">
                   <span>Or</span>
                 </div>
-                <form className="_social_login_form">
+
+                {error && (
+                  <div className="alert alert-danger py-2" role="alert">
+                    {error}
+                  </div>
+                )}
+
+                <form className="_social_login_form" onSubmit={handleSubmit}>
                   <div className="row">
                     <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12">
                       <div className="_social_login_form_input _mar_b14">
@@ -56,7 +110,12 @@ export default function LoginPage() {
                         </label>
                         <input
                           type="email"
+                          name="email"
                           className="form-control _social_login_input"
+                          value={formData.email}
+                          onChange={handleChange}
+                          required
+                          autoComplete="email"
                         />
                       </div>
                     </div>
@@ -67,34 +126,13 @@ export default function LoginPage() {
                         </label>
                         <input
                           type="password"
+                          name="password"
                           className="form-control _social_login_input"
+                          value={formData.password}
+                          onChange={handleChange}
+                          required
+                          autoComplete="current-password"
                         />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div className="col-lg-6 col-xl-6 col-md-6 col-sm-12">
-                      <div className="form-check _social_login_form_check">
-                        <input
-                          className="form-check-input _social_login_form_check_input"
-                          type="radio"
-                          name="flexRadioDefault"
-                          id="flexRadioDefault2"
-                          defaultChecked
-                        />
-                        <label
-                          className="form-check-label _social_login_form_check_label"
-                          htmlFor="flexRadioDefault2"
-                        >
-                          Remember me
-                        </label>
-                      </div>
-                    </div>
-                    <div className="col-lg-6 col-xl-6 col-md-6 col-sm-12">
-                      <div className="_social_login_form_left">
-                        <p className="_social_login_form_left_para">
-                          Forgot password?
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -102,10 +140,11 @@ export default function LoginPage() {
                     <div className="col-lg-12 col-md-12 col-xl-12 col-sm-12">
                       <div className="_social_login_form_btn _mar_t40 _mar_b60">
                         <button
-                          type="button"
+                          type="submit"
                           className="_social_login_form_btn_link _btn1"
+                          disabled={loading}
                         >
-                          Login now
+                          {loading ? "Logging in..." : "Login now"}
                         </button>
                       </div>
                     </div>
