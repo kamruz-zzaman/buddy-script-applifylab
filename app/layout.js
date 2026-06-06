@@ -1,5 +1,5 @@
 import "./globals.css";
-import BootstrapClient from "./BootstrapClient";
+import BootstrapClient from "../components/common/BootstrapClient";
 
 export const metadata = {
   title: "Buddy Script",
