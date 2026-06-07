@@ -148,9 +148,7 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                     }}
                     onClick={handleReaction}
                   >
-                    {myReaction
-                      ? `${REACTIONS.find((r) => r.type === myReaction)?.emoji} ${REACTIONS.find((r) => r.type === myReaction)?.label}`
-                      : "Like"}
+                    Like
                     .
                   </span>
                 </li>
