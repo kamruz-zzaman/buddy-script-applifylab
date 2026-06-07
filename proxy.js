@@ -8,7 +8,6 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/refresh",
-  "/api/seed",
 ];
 
 // Exact paths that require authentication
@@ -35,8 +34,7 @@ export default async function proxy(request) {
 
   // Check if this is a protected route or API
   const isProtected =
-    protectedExact.some((p) => pathname === p) ||
-    pathname.startsWith("/api/");
+    protectedExact.some((p) => pathname === p) || pathname.startsWith("/api/");
 
   if (isProtected) {
     const encryptedAccess = request.cookies.get("bsid")?.value;
@@ -53,7 +51,11 @@ export default async function proxy(request) {
       if (encryptedRefresh && !pathname.startsWith("/api/auth/refresh")) {
         if (pathname.startsWith("/api/")) {
           return Response.json(
-            { success: false, error: "Access token expired", code: "TOKEN_EXPIRED" },
+            {
+              success: false,
+              error: "Access token expired",
+              code: "TOKEN_EXPIRED",
+            },
             { status: 401 },
           );
         }
