@@ -90,7 +90,11 @@ function PostComposer() {
             }}
             maxLength={5000}
           ></textarea>
-          <label className="_feed_textarea_label" htmlFor="floatingTextarea">
+          <label
+            className="_feed_textarea_label"
+            htmlFor="floatingTextarea"
+            style={{ opacity: content ? 0 : 1, transition: ".2s all ease" }}
+          >
             Write something ...
             <svg
               xmlns="http://www.w3.org/2000/svg"
