@@ -78,6 +78,14 @@ export function FeedProvider({ children }) {
   const [hasMore, setHasMore] = useState(true);
   const initialized = useRef(false);
 
+  // Refs to avoid stale closures in loadMore — always read the latest values
+  const hasMoreRef = useRef(hasMore);
+  const loadingMoreRef = useRef(loadingMore);
+  const nextCursorRef = useRef(nextCursor);
+  hasMoreRef.current = hasMore;
+  loadingMoreRef.current = loadingMore;
+  nextCursorRef.current = nextCursor;
+
   const toggleDarkMode = useCallback(() => setDarkMode((prev) => !prev), []);
   const closeAllDropdowns = useCallback(() => {
     setProfileOpen(false);
@@ -113,17 +121,25 @@ export function FeedProvider({ children }) {
   }, [currentUser, fetchPosts]);
 
   // ─── Load more (cursor) ──────────────────────────────────────────────
+  // Uses refs for guard checks to avoid stale closures. The callback has
+  // no state dependencies, so its reference stays stable across renders.
   const loadMore = useCallback(async () => {
-    if (!hasMore || loadingMore || !nextCursor) return;
+    if (!hasMoreRef.current || loadingMoreRef.current || !nextCursorRef.current)
+      return;
     setLoadingMore(true);
-    const data = await apiFetch(`/api/posts?limit=10&cursor=${nextCursor}`);
-    if (data?.success) {
-      setPosts((prev) => [...prev, ...data.data.posts]);
-      setNextCursor(data.data.pagination.nextCursor);
-      setHasMore(data.data.pagination.hasMore);
+    try {
+      const data = await apiFetch(
+        `/api/posts?limit=10&cursor=${nextCursorRef.current}`,
+      );
+      if (data?.success) {
+        setPosts((prev) => [...prev, ...data.data.posts]);
+        setNextCursor(data.data.pagination.nextCursor);
+        setHasMore(data.data.pagination.hasMore);
+      }
+    } finally {
+      setLoadingMore(false);
     }
-    setLoadingMore(false);
-  }, [hasMore, loadingMore, nextCursor]);
+  }, []);
 
   // ─── Optimistic: Create post (no refetch) ────────────────────────────
   const createPost = useCallback(

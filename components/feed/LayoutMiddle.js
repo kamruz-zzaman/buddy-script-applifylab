@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useInView } from "react-intersection-observer";
 import StoriesDesktop from "./StoriesDesktop";
 import StoriesMobile from "./StoriesMobile";
@@ -13,57 +13,32 @@ function LayoutMiddle() {
   const { posts, initialLoading, loadingMore, hasMore, loadMore } =
     useFeedContext();
 
+  // Keep loadMore in a ref so the effect always calls the latest version
   const loadMoreRef = useRef(loadMore);
   loadMoreRef.current = loadMore;
 
+  const [containerEl, setContainerEl] = useState(null);
+  const scrollContainerRef = useCallback((node) => {
+    setContainerEl(node);
+  }, []);
+
+  // Intersection observer scoped to the actual scroll container.
   const { ref: sentinelRef, inView } = useInView({
-    rootMargin: "400px",
-    skip: !hasMore,
+    root: containerEl,
+    rootMargin: "0px 0px 400px 0px",
+    threshold: 0,
   });
 
-  const loadingRef = useRef(false);
-  const autoLoadCount = useRef(0);
-  const MAX_AUTO_LOADS = 5;
-
-  // Trigger loadMore when sentinel comes into view
+  // Single effect for all pagination — fires
   useEffect(() => {
-    if (inView && hasMore && !loadingRef.current) {
-      loadingRef.current = true;
-      loadMoreRef.current().finally(() => {
-        loadingRef.current = false;
-      });
+    if (inView && hasMore && !loadingMore && !initialLoading) {
+      loadMoreRef.current();
     }
-  }, [inView, hasMore]);
-
-  // Desktop fallback: if not enough posts to cause scroll, try loading
-  // Limited to MAX_AUTO_LOADS consecutive loads to prevent endless chaining
-  useEffect(() => {
-    if (initialLoading || posts.length === 0 || !hasMore) return;
-    if (loadingMore || autoLoadCount.current >= MAX_AUTO_LOADS) return;
-
-    const timer = setTimeout(() => {
-      const pageBottom = document.documentElement.scrollHeight;
-      const viewBottom = window.innerHeight + window.scrollY;
-      if (pageBottom - viewBottom < 800) {
-        autoLoadCount.current++;
-        loadMoreRef.current();
-      }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [initialLoading, posts.length, hasMore]);
-
-  // Reset auto-load counter when user scrolls (real user interaction)
-  useEffect(() => {
-    const onScroll = () => {
-      autoLoadCount.current = 0;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [inView, hasMore, loadingMore, initialLoading]);
 
   return (
     <div className="col-xl-6 col-lg-6 col-md-12 col-sm-12">
-      <div className="_layout_middle_wrap">
+      <div className="_layout_middle_wrap" ref={scrollContainerRef}>
         <div className="_layout_middle_inner">
           <StoriesDesktop />
           <StoriesMobile />
@@ -110,7 +85,7 @@ function LayoutMiddle() {
                 fontSize: "13px",
               }}
             >
-              You're all caught up!
+              You&apos;re all caught up!
             </div>
           )}
         </div>
