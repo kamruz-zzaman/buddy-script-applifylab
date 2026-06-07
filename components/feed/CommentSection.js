@@ -178,29 +178,32 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   );
 }
 
-export default function CommentSection({ postId, refreshKey, optimisticComment }) {
-  const [allComments, setAllComments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [totalComments, setTotalComments] = useState(0);
+export default function CommentSection({ postId, refreshKey, optimisticComment, initialComments, totalComments: initialTotal }) {
+  const [allComments, setAllComments] = useState(initialComments || []);
+  const [loading, setLoading] = useState(!initialComments);
+  const [totalComments, setTotalComments] = useState(initialTotal ?? 0);
   const [showingAll, setShowingAll] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(!!initialComments);
 
   const INITIAL_LIMIT = 2;
 
-  // Fetch initial batch
+  // Fetch initial batch (only when no initial comments provided)
   const fetchInitial = useCallback(async () => {
+    if (hasInitiallyLoaded) return;
     try {
       const res = await fetch(`/api/posts/${postId}/comments?limit=${INITIAL_LIMIT}`);
       const data = await res.json();
       if (data?.success) {
         setAllComments(data.data.comments);
         setTotalComments(data.data.pagination?.total || 0);
+        setHasInitiallyLoaded(true);
       }
     } catch {
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  }, [postId, hasInitiallyLoaded]);
 
   // Load all remaining comments
   const loadAll = useCallback(async () => {
@@ -220,21 +223,30 @@ export default function CommentSection({ postId, refreshKey, optimisticComment }
   }, [postId]);
 
   useEffect(() => {
-    setLoading(true);
-    setShowingAll(false);
-    fetchInitial();
-  }, [fetchInitial, refreshKey]);
-
-  const handleReplyAdded = useCallback(() => {
-    // Refetch to get replies
-    if (showingAll) {
-      loadAll();
+    if (initialComments) {
+      setAllComments(initialComments);
+      setTotalComments(initialTotal ?? 0);
+      setHasInitiallyLoaded(true);
+      setLoading(false);
+      setShowingAll(false);
     } else {
+      setLoading(true);
+      setShowingAll(false);
       fetchInitial();
     }
-  }, [showingAll, loadAll, fetchInitial]);
+  }, [fetchInitial, refreshKey, initialComments, initialTotal]);
 
-  // Add optimistic comment immediately (deduplicated by _id)
+  const handleReplyAdded = useCallback(() => {
+    if (showingAll) {
+      loadAll();
+    } else if (!initialComments) {
+      fetchInitial();
+    } else {
+      loadAll();
+    }
+  }, [showingAll, loadAll, fetchInitial, initialComments]);
+
+  // Add optimistic comment immediately
   useEffect(() => {
     if (optimisticComment?.comment) {
       setAllComments((prev) => {

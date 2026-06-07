@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
+import Comment from "@/lib/models/Comment";
 import cloudinary from "@/lib/cloudinary";
 import {
   getCurrentUserId,
@@ -112,10 +113,41 @@ export async function GET(request) {
     const hasMore = posts.length > limit;
     if (hasMore) posts.pop(); // remove the extra item
 
-    const nextCursor = posts.length > 0 ? posts[posts.length - 1]._id : null;
+    // Embed first 2 comments (with replies) for each post
+    const COMMENT_PREVIEW = 2;
+    const postsWithComments = await Promise.all(
+      posts.map(async (post) => {
+        const totalComments = await Comment.countDocuments({ post: post._id, parent: null });
+        let comments = [];
+        if (totalComments > 0) {
+          const topComments = await Comment.find({ post: post._id, parent: null })
+            .sort({ createdAt: -1 })
+            .limit(COMMENT_PREVIEW)
+            .populate("author", "firstName lastName")
+            .populate("reactions.user", "firstName lastName")
+            .setOptions({ strictPopulate: false })
+            .lean();
+          // Fetch replies for each comment
+          comments = await Promise.all(
+            topComments.map(async (c) => {
+              const replies = await Comment.find({ parent: c._id })
+                .sort({ createdAt: 1 })
+                .populate("author", "firstName lastName")
+                .populate("reactions.user", "firstName lastName")
+                .setOptions({ strictPopulate: false })
+                .lean();
+              return { ...c, replies };
+            }),
+          );
+        }
+        return { ...post, comments, totalComments };
+      }),
+    );
+
+    const nextCursor = postsWithComments.length > 0 ? postsWithComments[postsWithComments.length - 1]._id : null;
 
     return successResponse({
-      posts,
+      posts: postsWithComments,
       pagination: {
         limit,
         nextCursor,

@@ -264,7 +264,13 @@ function TimelinePost({ post }) {
       {/* Comments — always visible */}
       <div ref={commentBoxRef}>
         <CommentBox postId={post._id} onCommentAdded={onCommentAdded} />
-        <CommentSection postId={post._id} refreshKey={commentRefreshKey} optimisticComment={optimisticComment} />
+        <CommentSection
+          postId={post._id}
+          refreshKey={commentRefreshKey}
+          optimisticComment={optimisticComment}
+          initialComments={post.comments}
+          totalComments={post.totalComments}
+        />
       </div>
     </div>
   );

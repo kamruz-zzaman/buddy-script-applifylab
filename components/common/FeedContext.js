@@ -101,6 +101,8 @@ export function FeedProvider({ children }) {
         reactionCounts: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
         reactionsCount: 0,
         commentsCount: 0,
+        comments: [],
+        totalComments: 0,
         createdAt: new Date().toISOString(),
       };
       setPosts((prev) => [optimisticPost, ...prev]);
