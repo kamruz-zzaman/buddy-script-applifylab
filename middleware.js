@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyAccessToken } from "@/lib/utils/auth";
+import { verifyAccessToken, decryptCookieValue } from "@/lib/utils/auth";
 
 // Paths that do NOT require authentication
 const publicPaths = [
@@ -39,14 +39,20 @@ export async function middleware(request) {
     pathname.startsWith("/api/");
 
   if (isProtected) {
-    const accessToken = request.cookies.get("access_token")?.value;
-    const refreshToken = request.cookies.get("refresh_token")?.value;
+    const encryptedAccess = request.cookies.get("bsid")?.value;
+    const encryptedRefresh = request.cookies.get("bsrt")?.value;
+
+    // Decrypt the access token cookie value
+    let accessToken = null;
+    if (encryptedAccess) {
+      accessToken = await decryptCookieValue(encryptedAccess);
+    }
 
     // No access token at all
     if (!accessToken) {
       // If there's a refresh token, redirect to refresh (auto-refresh flow)
       // This handles the case where access token expired and browser auto-sends request
-      if (refreshToken && !pathname.startsWith("/api/auth/refresh")) {
+      if (encryptedRefresh && !pathname.startsWith("/api/auth/refresh")) {
         // For API calls, return a specific status so the client can retry
         if (pathname.startsWith("/api/")) {
           return Response.json(
@@ -88,7 +94,7 @@ export async function middleware(request) {
       }
       // For pages, redirect to login
       const response = NextResponse.redirect(new URL("/login", request.url));
-      response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
+      response.cookies.set("bsid", "", { maxAge: 0, path: "/" });
       return response;
     }
 

@@ -29,13 +29,14 @@ export default function RegistrationPage() {
 
     const { firstName, lastName, email, password, confirmPassword } = formData;
 
+    // Basic client-side check (server has the full validation)
     if (!firstName || !lastName || !email || !password) {
       setError("All fields are required");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
 
