@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useFeedContext } from "../common/FeedContext";
 import CommentBox from "./CommentBox";
 
 const REACTIONS = [
@@ -28,7 +29,13 @@ function timeAgo(dateStr) {
 }
 
 function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
-  const [myReaction, setMyReaction] = useState(null);
+  const { currentUser } = useFeedContext();
+  const initialMyReaction =
+    comment.reactions?.find(
+      (r) => (r.user?._id || r.user) === currentUser?.id,
+    )?.type || null;
+
+  const [myReaction, setMyReaction] = useState(initialMyReaction);
   const [reactionCounts, setReactionCounts] = useState(
     comment.reactionCounts || {},
   );
