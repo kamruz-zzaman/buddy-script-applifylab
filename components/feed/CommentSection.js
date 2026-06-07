@@ -226,7 +226,9 @@ export default function CommentSection({
       if (data?.success) {
         setAllComments((prev) => {
           const existingIds = new Set(prev.map((c) => c._id));
-          const newOnes = data.data.comments.filter((c) => !existingIds.has(c._id));
+          const newOnes = data.data.comments.filter(
+            (c) => !existingIds.has(c._id),
+          );
           return [...prev, ...newOnes];
         });
         setTotalComments(data.data.pagination?.total || 0);

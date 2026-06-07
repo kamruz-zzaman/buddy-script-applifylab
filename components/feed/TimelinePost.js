@@ -267,12 +267,19 @@ function TimelinePost({ post }) {
         ref={reactionRef}
         style={{ position: "relative" }}
       >
-        <div style={{ position: "relative" }}>
+        <div
+          style={{
+            position: "relative",
+            flex: "1 1",
+            display: "flex",
+            margin: "0 4px 0 0",
+          }}
+        >
           <button
             className={`_feed_inner_timeline_reaction_emoji _feed_reaction${myReaction ? " _feed_reaction_active" : ""}`}
             onMouseEnter={handleReactionHover}
             onMouseLeave={handleReactionLeave}
-            onClick={() => handleReaction(myReaction || "like")}
+            onClick={() => handleReaction(myReaction || "haha")}
           >
             <span className="_feed_inner_timeline_reaction_link">
               {myReaction ? (
