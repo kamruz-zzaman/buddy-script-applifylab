@@ -1,9 +1,13 @@
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
+import Session from "@/lib/models/Session";
 import { rateLimit } from "@/lib/utils/rateLimit";
 import {
-  generateToken,
-  setAuthCookie,
+  generateAccessToken,
+  generateRefreshToken,
+  setAccessTokenCookie,
+  setRefreshTokenCookie,
+  hashToken,
   successResponse,
   errorResponse,
 } from "@/lib/utils/auth";
@@ -57,9 +61,32 @@ export async function POST(request) {
       password,
     });
 
-    // Generate JWT and set cookie
-    const token = await generateToken(user._id.toString());
-    await setAuthCookie(token);
+    const userId = user._id.toString();
+
+    // Create a session record
+    const session = await Session.create({
+      userId,
+      refreshTokenHash: "", // placeholder — set after token generation
+      userAgent: request.headers.get("user-agent") || "Unknown",
+      ip,
+      lastActivity: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    });
+
+    // Generate tokens
+    const accessToken = await generateAccessToken(userId);
+    const refreshToken = await generateRefreshToken(
+      userId,
+      session._id.toString(),
+    );
+
+    // Store the hashed refresh token in the session
+    session.refreshTokenHash = hashToken(refreshToken);
+    await session.save();
+
+    // Set httpOnly cookies
+    await setAccessTokenCookie(accessToken);
+    await setRefreshTokenCookie(refreshToken);
 
     return successResponse(
       {
@@ -69,6 +96,7 @@ export async function POST(request) {
           lastName: user.lastName,
           email: user.email,
         },
+        sessionId: session._id,
       },
       201,
     );

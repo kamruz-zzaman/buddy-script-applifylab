@@ -11,12 +11,55 @@ import {
 
 const FeedContext = createContext(null);
 
+// Track whether a refresh is in-flight to avoid multiple simultaneous refreshes
+let refreshPromise = null;
+
+async function tryRefreshToken() {
+  if (refreshPromise) return refreshPromise; // Deduplicate concurrent refreshes
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch("/api/auth/refresh", { method: "POST" });
+      const data = await res.json();
+      refreshPromise = null;
+      return data?.success === true;
+    } catch {
+      refreshPromise = null;
+      return false;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
     ...options,
     headers: { "Content-Type": "application/json", ...options.headers },
   });
+
+  // If token expired, try to refresh once and retry
   if (res.status === 401) {
+    try {
+      const body = await res.clone().json();
+      if (body?.code === "TOKEN_EXPIRED") {
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+          // Retry the original request with the new access token
+          const retryRes = await fetch(url, {
+            ...options,
+            headers: { "Content-Type": "application/json", ...options.headers },
+          });
+          if (retryRes.status === 401) {
+            window.location.href = "/login";
+            return null;
+          }
+          return retryRes.json();
+        }
+      }
+    } catch {
+      // If parsing fails, just redirect
+    }
     window.location.href = "/login";
     return null;
   }

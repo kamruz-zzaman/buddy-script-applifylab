@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyToken } from "@/lib/utils/auth";
+import { verifyAccessToken } from "@/lib/utils/auth";
 
 // Paths that do NOT require authentication
 const publicPaths = [
@@ -7,6 +7,7 @@ const publicPaths = [
   "/registration",
   "/api/auth/login",
   "/api/auth/register",
+  "/api/auth/refresh",
   "/api/seed",
 ];
 
@@ -38,34 +39,60 @@ export async function middleware(request) {
     pathname.startsWith("/api/");
 
   if (isProtected) {
-    const token = request.cookies.get("token")?.value;
+    const accessToken = request.cookies.get("access_token")?.value;
+    const refreshToken = request.cookies.get("refresh_token")?.value;
 
-    if (!token) {
-      // For API routes, return 401 JSON
+    // No access token at all
+    if (!accessToken) {
+      // If there's a refresh token, redirect to refresh (auto-refresh flow)
+      // This handles the case where access token expired and browser auto-sends request
+      if (refreshToken && !pathname.startsWith("/api/auth/refresh")) {
+        // For API calls, return a specific status so the client can retry
+        if (pathname.startsWith("/api/")) {
+          return Response.json(
+            {
+              success: false,
+              error: "Access token expired",
+              code: "TOKEN_EXPIRED",
+            },
+            { status: 401 },
+          );
+        }
+        // For page loads, redirect to login (the page component should handle refresh)
+        return NextResponse.redirect(new URL("/login", request.url));
+      }
+
       if (pathname.startsWith("/api/")) {
         return Response.json(
           { success: false, error: "Not authenticated" },
           { status: 401 },
         );
       }
-      // For pages, redirect to login
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    const decoded = await verifyToken(token);
+    // Verify the access token
+    const decoded = await verifyAccessToken(accessToken);
     if (!decoded) {
+      // Access token expired or invalid — tell the client to refresh
       if (pathname.startsWith("/api/")) {
+        // For API routes, return 401 and the client-side FeedClient will handle refresh
         return Response.json(
-          { success: false, error: "Invalid or expired token" },
+          {
+            success: false,
+            error: "Token expired",
+            code: "TOKEN_EXPIRED",
+          },
           { status: 401 },
         );
       }
+      // For pages, redirect to login
       const response = NextResponse.redirect(new URL("/login", request.url));
-      response.cookies.set("token", "", { maxAge: 0 });
+      response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
       return response;
     }
 
-    // Add userId to request headers for convenience
+    // Token is valid — add userId to request headers
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-user-id", decoded.userId);
 
