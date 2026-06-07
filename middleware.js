@@ -11,8 +11,11 @@ const publicPaths = [
   "/api/seed",
 ];
 
-// Paths that ALWAYS require authentication
-const protectedPaths = ["/feed"];
+// Paths that ALWAYS require authentication (prefix match)
+const protectedPaths = [];
+
+// Exact paths that require authentication
+const protectedExact = ["/"];
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
@@ -36,6 +39,7 @@ export async function middleware(request) {
   // Check if this is a protected route or API
   const isProtected =
     protectedPaths.some((p) => pathname.startsWith(p)) ||
+    protectedExact.some((p) => pathname === p) ||
     pathname.startsWith("/api/");
 
   if (isProtected) {

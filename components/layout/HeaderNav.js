@@ -8,8 +8,16 @@ function HeaderNav() {
     <nav className="navbar navbar-expand-lg navbar-light _header_nav _padd_t10">
       <div className="container _custom_container">
         <div className="_logo_wrap">
-          <Link className="navbar-brand" href="/feed">
-            <Image src="/assets/images/logo.svg" alt="Image" width={170} height={40} unoptimized className="_nav_logo" style={{ height: "auto" }} />
+          <Link className="navbar-brand" href="/">
+            <Image
+              src="/assets/images/logo.svg"
+              alt="Image"
+              width={170}
+              height={40}
+              unoptimized
+              className="_nav_logo"
+              style={{ height: "auto" }}
+            />
           </Link>
         </div>
         <button
@@ -49,7 +57,7 @@ function HeaderNav() {
             <li className="nav-item _header_nav_item">
               <Link
                 className="nav-link _header_nav_link_active _header_nav_link"
-                href="/feed"
+                href="/"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

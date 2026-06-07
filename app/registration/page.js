@@ -60,7 +60,7 @@ export default function RegistrationPage() {
         return;
       }
 
-      router.push("/feed");
+      router.push("/");
     } catch {
       setError("Network error. Please try again.");
     } finally {

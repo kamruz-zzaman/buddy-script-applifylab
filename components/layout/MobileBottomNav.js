@@ -1,5 +1,26 @@
 import Link from "next/link";
-import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon, SaveIcon, NotifyIcon, HideIcon, EditIcon, DeleteIcon, LearningIcon, InsightsIcon, FindFriendsIcon, BookmarksIcon, GroupIcon, GamingIcon, Settings2Icon, SavePostIcon, SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
+import {
+  PhotoIcon,
+  VideoIcon,
+  EventIcon,
+  ArticleIcon,
+  SaveIcon,
+  NotifyIcon,
+  HideIcon,
+  EditIcon,
+  DeleteIcon,
+  LearningIcon,
+  InsightsIcon,
+  FindFriendsIcon,
+  BookmarksIcon,
+  GroupIcon,
+  GamingIcon,
+  Settings2Icon,
+  SavePostIcon,
+  SettingsIcon,
+  HelpIcon,
+  LogoutIcon,
+} from "../common/icons";
 
 function MobileBottomNav() {
   return (
@@ -11,7 +32,7 @@ function MobileBottomNav() {
               <ul className="_mobile_navigation_bottom_list">
                 <li className="_mobile_navigation_bottom_item">
                   <Link
-                    href="/feed"
+                    href="/"
                     className="_mobile_navigation_bottom_link _mobile_navigation_bottom_link_active"
                   >
                     <svg

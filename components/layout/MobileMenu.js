@@ -1,6 +1,27 @@
 import Link from "next/link";
 import Image from "next/image";
-import { PhotoIcon, VideoIcon, EventIcon, ArticleIcon, SaveIcon, NotifyIcon, HideIcon, EditIcon, DeleteIcon, LearningIcon, InsightsIcon, FindFriendsIcon, BookmarksIcon, GroupIcon, GamingIcon, Settings2Icon, SavePostIcon, SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
+import {
+  PhotoIcon,
+  VideoIcon,
+  EventIcon,
+  ArticleIcon,
+  SaveIcon,
+  NotifyIcon,
+  HideIcon,
+  EditIcon,
+  DeleteIcon,
+  LearningIcon,
+  InsightsIcon,
+  FindFriendsIcon,
+  BookmarksIcon,
+  GroupIcon,
+  GamingIcon,
+  Settings2Icon,
+  SavePostIcon,
+  SettingsIcon,
+  HelpIcon,
+  LogoutIcon,
+} from "../common/icons";
 
 function MobileMenu() {
   return (
@@ -12,8 +33,16 @@ function MobileMenu() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12">
                 <div className="_header_mobile_menu_top_inner">
                   <div className="_header_mobile_menu_logo">
-                    <Link href="/feed">
-                      <Image src="/assets/images/logo.svg" alt="Image" width={170} height={40} unoptimized className="_nav_logo" style={{ height: "auto" }} />
+                    <Link href="/">
+                      <Image
+                        src="/assets/images/logo.svg"
+                        alt="Image"
+                        width={170}
+                        height={40}
+                        unoptimized
+                        className="_nav_logo"
+                        style={{ height: "auto" }}
+                      />
                     </Link>
                   </div>
                   <div className="_header_mobile_menu_right">
