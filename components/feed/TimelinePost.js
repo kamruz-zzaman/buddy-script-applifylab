@@ -35,13 +35,13 @@ const REACTIONS = [
 function TimelinePost({ post }) {
   const { currentUser, togglePostReaction, deletePost, incrementCommentsCount } = useFeedContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(post?.commentsCount || 0);
   const [commentRefreshKey, setCommentRefreshKey] = useState(0);
   const [optimisticComment, setOptimisticComment] = useState(null);
   const dropdownRef = useRef(null);
   const reactionRef = useRef(null);
+  const commentBoxRef = useRef(null);
   const reactionTimeout = useRef(null);
 
   const isOwner = currentUser?.id === post?.author?._id;
@@ -175,8 +175,8 @@ function TimelinePost({ post }) {
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
           <p className="_feed_inner_timeline_total_reacts_para1">
-            <Link href="#0" onClick={(e) => { e.preventDefault(); setShowComments((s) => !s); }}>
-              <span>{localCommentsCount}</span> Comment
+            <Link href="#0" onClick={(e) => { e.preventDefault(); commentBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
+              <span>{localCommentsCount}</span> Comment{localCommentsCount !== 1 ? 's' : ''}
             </Link>
           </p>
           <p className="_feed_inner_timeline_total_reacts_para2">
@@ -239,7 +239,7 @@ function TimelinePost({ post }) {
         {/* Comment Button */}
         <button
           className="_feed_inner_timeline_reaction_comment _feed_reaction"
-          onClick={() => setShowComments((s) => !s)}
+          onClick={() => commentBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
         >
           <span className="_feed_inner_timeline_reaction_link">
             <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21" style={{ marginRight: "6px" }}>
@@ -261,12 +261,11 @@ function TimelinePost({ post }) {
         </button>
       </div>
 
-      {showComments && (
-        <>
-          <CommentBox postId={post._id} onCommentAdded={onCommentAdded} />
-          <CommentSection postId={post._id} refreshKey={commentRefreshKey} optimisticComment={optimisticComment} />
-        </>
-      )}
+      {/* Comments — always visible */}
+      <div ref={commentBoxRef}>
+        <CommentBox postId={post._id} onCommentAdded={onCommentAdded} />
+        <CommentSection postId={post._id} refreshKey={commentRefreshKey} optimisticComment={optimisticComment} />
+      </div>
     </div>
   );
 }
