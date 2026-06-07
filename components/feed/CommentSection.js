@@ -111,10 +111,10 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
               />
             </div>
           )}
-          <div className="_total_reactions">
-            <div className="_total_react">
-              {reactionsCount > 0 &&
-                Object.entries(reactionCounts).map(([type, count]) =>
+          {totalReacts > 0 && (
+            <div className="_total_reactions">
+              <div className="_total_react">
+                {Object.entries(reactionCounts).map(([type, count]) =>
                   count > 0 ? (
                     <span
                       key={type}
@@ -125,9 +125,10 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                     </span>
                   ) : null,
                 )}
+              </div>
+              <span className="_total">{totalReacts}</span>
             </div>
-            {totalReacts > 0 && <span className="_total">{totalReacts}</span>}
-          </div>
+          )}
           <div className="_comment_reply">
             <div className="_comment_reply_num">
               <ul className="_comment_reply_list">
