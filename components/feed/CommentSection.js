@@ -179,15 +179,22 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
 }
 
 export default function CommentSection({ postId, refreshKey, optimisticComment }) {
-  const [comments, setComments] = useState([]);
+  const [allComments, setAllComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalComments, setTotalComments] = useState(0);
+  const [showingAll, setShowingAll] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchComments = useCallback(async () => {
+  const INITIAL_LIMIT = 2;
+
+  // Fetch initial batch
+  const fetchInitial = useCallback(async () => {
     try {
-      const res = await fetch(`/api/posts/${postId}/comments?limit=100`);
+      const res = await fetch(`/api/posts/${postId}/comments?limit=${INITIAL_LIMIT}`);
       const data = await res.json();
       if (data?.success) {
-        setComments(data.data.comments);
+        setAllComments(data.data.comments);
+        setTotalComments(data.data.pagination?.total || 0);
       }
     } catch {
     } finally {
@@ -195,25 +202,51 @@ export default function CommentSection({ postId, refreshKey, optimisticComment }
     }
   }, [postId]);
 
+  // Load all remaining comments
+  const loadAll = useCallback(async () => {
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments?limit=100`);
+      const data = await res.json();
+      if (data?.success) {
+        setAllComments(data.data.comments);
+        setTotalComments(data.data.pagination?.total || 0);
+        setShowingAll(true);
+      }
+    } catch {
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [postId]);
+
   useEffect(() => {
     setLoading(true);
-    fetchComments();
-  }, [fetchComments, refreshKey]);
+    setShowingAll(false);
+    fetchInitial();
+  }, [fetchInitial, refreshKey]);
 
   const handleReplyAdded = useCallback(() => {
-    fetchComments();
-  }, [fetchComments]);
+    // Refetch to get replies
+    if (showingAll) {
+      loadAll();
+    } else {
+      fetchInitial();
+    }
+  }, [showingAll, loadAll, fetchInitial]);
 
   // Add optimistic comment immediately (deduplicated by _id)
   useEffect(() => {
     if (optimisticComment?.comment) {
-      setComments((prev) => {
+      setAllComments((prev) => {
         if (prev.some((c) => c._id === optimisticComment.comment._id)) return prev;
         return [optimisticComment.comment, ...prev];
       });
+      setTotalComments((t) => t + 1);
       setLoading(false);
     }
   }, [optimisticComment]);
+
+  const previousCount = totalComments - allComments.length;
 
   if (loading) {
     return (
@@ -225,11 +258,32 @@ export default function CommentSection({ postId, refreshKey, optimisticComment }
     );
   }
 
-  if (comments.length === 0) return null;
+  if (allComments.length === 0) return null;
 
   return (
     <div className="_timline_comment_main">
-      {comments.map((comment) => (
+      {/* View previous comments */}
+      {previousCount > 0 && (
+        <div style={{ padding: "4px 24px 8px" }}>
+          <button
+            onClick={loadAll}
+            disabled={loadingMore}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#65676b",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            {loadingMore ? "Loading..." : `View ${previousCount} previous comment${previousCount > 1 ? "s" : ""}`}
+          </button>
+        </div>
+      )}
+
+      {allComments.map((comment) => (
         <div key={comment._id}>
           <SingleComment
             comment={comment}
