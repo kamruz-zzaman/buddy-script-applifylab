@@ -178,25 +178,38 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   );
 }
 
-export default function CommentSection({ postId, refreshKey, optimisticComment, initialComments, totalComments: initialTotal }) {
+export default function CommentSection({
+  postId,
+  refreshKey,
+  optimisticComment,
+  initialComments,
+  totalComments: initialTotal,
+}) {
   const [allComments, setAllComments] = useState(initialComments || []);
   const [loading, setLoading] = useState(!initialComments);
   const [totalComments, setTotalComments] = useState(initialTotal ?? 0);
-  const [showingAll, setShowingAll] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(!!initialComments);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] =
+    useState(!!initialComments);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePages, setHasMorePages] = useState(true);
 
   const INITIAL_LIMIT = 2;
+  const PAGE_SIZE = 10;
 
   // Fetch initial batch (only when no initial comments provided)
   const fetchInitial = useCallback(async () => {
     if (hasInitiallyLoaded) return;
     try {
-      const res = await fetch(`/api/posts/${postId}/comments?limit=${INITIAL_LIMIT}`);
+      const res = await fetch(
+        `/api/posts/${postId}/comments?limit=${INITIAL_LIMIT}`,
+      );
       const data = await res.json();
       if (data?.success) {
         setAllComments(data.data.comments);
         setTotalComments(data.data.pagination?.total || 0);
+        setHasMorePages(data.data.pagination?.hasMore || false);
+        setCurrentPage(1);
         setHasInitiallyLoaded(true);
       }
     } catch {
@@ -205,22 +218,27 @@ export default function CommentSection({ postId, refreshKey, optimisticComment, 
     }
   }, [postId, hasInitiallyLoaded]);
 
-  // Load all remaining comments
-  const loadAll = useCallback(async () => {
+  // Load next page of older comments (appends, doesn't replace)
+  const loadMorePage = useCallback(async () => {
+    if (loadingMore || !hasMorePages) return;
     setLoadingMore(true);
+    const nextPage = currentPage + 1;
     try {
-      const res = await fetch(`/api/posts/${postId}/comments?limit=100`);
+      const res = await fetch(
+        `/api/posts/${postId}/comments?limit=${PAGE_SIZE}&page=${nextPage}`,
+      );
       const data = await res.json();
       if (data?.success) {
-        setAllComments(data.data.comments);
+        setAllComments((prev) => [...prev, ...data.data.comments]);
         setTotalComments(data.data.pagination?.total || 0);
-        setShowingAll(true);
+        setHasMorePages(data.data.pagination?.hasMore || false);
+        setCurrentPage(nextPage);
       }
     } catch {
     } finally {
       setLoadingMore(false);
     }
-  }, [postId]);
+  }, [postId, loadingMore, hasMorePages, currentPage]);
 
   useEffect(() => {
     if (initialComments) {
@@ -228,29 +246,29 @@ export default function CommentSection({ postId, refreshKey, optimisticComment, 
       setTotalComments(initialTotal ?? 0);
       setHasInitiallyLoaded(true);
       setLoading(false);
-      setShowingAll(false);
+      setCurrentPage(1);
+      // hasMorePages = true only if total > what we have
+      setHasMorePages((initialTotal ?? 0) > (initialComments?.length || 0));
     } else {
       setLoading(true);
-      setShowingAll(false);
+      setHasMorePages(true);
+      setCurrentPage(1);
       fetchInitial();
     }
   }, [fetchInitial, refreshKey, initialComments, initialTotal]);
 
   const handleReplyAdded = useCallback(() => {
-    if (showingAll) {
-      loadAll();
-    } else if (!initialComments) {
-      fetchInitial();
-    } else {
-      loadAll();
-    }
-  }, [showingAll, loadAll, fetchInitial, initialComments]);
+    // For replies, just reload current state — keep it simple
+    setLoading(true);
+    fetchInitial();
+  }, [fetchInitial]);
 
   // Add optimistic comment immediately
   useEffect(() => {
     if (optimisticComment?.comment) {
       setAllComments((prev) => {
-        if (prev.some((c) => c._id === optimisticComment.comment._id)) return prev;
+        if (prev.some((c) => c._id === optimisticComment.comment._id))
+          return prev;
         return [optimisticComment.comment, ...prev];
       });
       setTotalComments((t) => t + 1);
@@ -258,7 +276,7 @@ export default function CommentSection({ postId, refreshKey, optimisticComment, 
     }
   }, [optimisticComment]);
 
-  const previousCount = totalComments - allComments.length;
+  const remainingCount = totalComments - allComments.length;
 
   if (loading) {
     return (
@@ -274,11 +292,11 @@ export default function CommentSection({ postId, refreshKey, optimisticComment, 
 
   return (
     <div className="_timline_comment_main">
-      {/* View previous comments */}
-      {previousCount > 0 && (
+      {/* View previous comments — progressive pagination */}
+      {remainingCount > 0 && (
         <div style={{ padding: "4px 24px 8px" }}>
           <button
-            onClick={loadAll}
+            onClick={loadMorePage}
             disabled={loadingMore}
             style={{
               background: "none",
@@ -290,7 +308,9 @@ export default function CommentSection({ postId, refreshKey, optimisticComment, 
               padding: 0,
             }}
           >
-            {loadingMore ? "Loading..." : `View ${previousCount} previous comment${previousCount > 1 ? "s" : ""}`}
+            {loadingMore
+              ? "Loading..."
+              : `View ${remainingCount} previous comment${remainingCount > 1 ? "s" : ""}`}
           </button>
         </div>
       )}

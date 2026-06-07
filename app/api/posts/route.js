@@ -117,10 +117,16 @@ export async function GET(request) {
     const COMMENT_PREVIEW = 2;
     const postsWithComments = await Promise.all(
       posts.map(async (post) => {
-        const totalComments = await Comment.countDocuments({ post: post._id, parent: null });
+        const totalComments = await Comment.countDocuments({
+          post: post._id,
+          parent: null,
+        });
         let comments = [];
         if (totalComments > 0) {
-          const topComments = await Comment.find({ post: post._id, parent: null })
+          const topComments = await Comment.find({
+            post: post._id,
+            parent: null,
+          })
             .sort({ createdAt: -1 })
             .limit(COMMENT_PREVIEW)
             .populate("author", "firstName lastName")
@@ -144,7 +150,10 @@ export async function GET(request) {
       }),
     );
 
-    const nextCursor = postsWithComments.length > 0 ? postsWithComments[postsWithComments.length - 1]._id : null;
+    const nextCursor =
+      postsWithComments.length > 0
+        ? postsWithComments[postsWithComments.length - 1]._id
+        : null;
 
     return successResponse({
       posts: postsWithComments,

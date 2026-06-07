@@ -10,10 +10,16 @@ import {
 
 export async function POST(request) {
   // Rate limit: 10 login attempts per minute per IP
-  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+  const ip =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
   const { allowed } = rateLimit(`login_${ip}`, 10, 60000);
   if (!allowed) {
-    return errorResponse("Too many login attempts. Please try again later.", 429);
+    return errorResponse(
+      "Too many login attempts. Please try again later.",
+      429,
+    );
   }
   try {
     await dbConnect();

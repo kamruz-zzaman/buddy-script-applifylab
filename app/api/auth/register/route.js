@@ -10,10 +10,16 @@ import {
 
 export async function POST(request) {
   // Rate limit: 5 registrations per minute per IP
-  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+  const ip =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
   const { allowed } = rateLimit(`register_${ip}`, 5, 60000);
   if (!allowed) {
-    return errorResponse("Too many registration attempts. Please try again later.", 429);
+    return errorResponse(
+      "Too many registration attempts. Please try again later.",
+      429,
+    );
   }
   try {
     await dbConnect();
