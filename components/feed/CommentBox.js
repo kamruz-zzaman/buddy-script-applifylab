@@ -70,7 +70,9 @@ function CommentBox({ postId, onCommentAdded, parentId }) {
             <div className="_feed_inner_comment_box_content_image">
               <Image
                 src="/assets/images/comment_img.png"
-                alt="" width={800} height={600}
+                alt=""
+                width={800}
+                height={600}
                 className="_comment_img"
               />
             </div>
@@ -86,12 +88,26 @@ function CommentBox({ postId, onCommentAdded, parentId }) {
             </div>
 
             {/* Mic — visual only */}
-            <span className="_feed_inner_comment_box_icon_btn" style={{ flexShrink: 0, opacity: 0.5, cursor: "default", display: "flex", alignItems: "center" }}>
+            <span
+              className="_feed_inner_comment_box_icon_btn"
+              style={{
+                flexShrink: 0,
+                opacity: 0.5,
+                cursor: "default",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               {MicIcon}
             </span>
 
             {/* Image upload */}
-            <button type="button" className="_feed_inner_comment_box_icon_btn" onClick={() => fileInputRef.current?.click()} style={{ flexShrink: 0 }}>
+            <button
+              type="button"
+              className="_feed_inner_comment_box_icon_btn"
+              onClick={() => fileInputRef.current?.click()}
+              style={{ flexShrink: 0 }}
+            >
               {ImageIcon}
             </button>
           </div>

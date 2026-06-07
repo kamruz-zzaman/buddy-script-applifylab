@@ -31,9 +31,8 @@ function timeAgo(dateStr) {
 function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   const { currentUser } = useFeedContext();
   const initialMyReaction =
-    comment.reactions?.find(
-      (r) => (r.user?._id || r.user) === currentUser?.id,
-    )?.type || null;
+    comment.reactions?.find((r) => (r.user?._id || r.user) === currentUser?.id)
+      ?.type || null;
 
   const [myReaction, setMyReaction] = useState(initialMyReaction);
   const [reactionCounts, setReactionCounts] = useState(
@@ -152,6 +151,9 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                   </span>
                 </li>
                 <li>
+                  <span>.</span>
+                </li>
+                <li>
                   <span
                     style={{ cursor: "pointer" }}
                     onClick={() => setShowReplyBox((s) => !s)}
@@ -160,10 +162,18 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                   </span>
                 </li>
                 <li>
+                  <span>.</span>
+                </li>
+                <li>
                   <span>Share</span>
                 </li>
                 <li>
-                  <span className="_time_link">{timeAgo(comment.createdAt)}</span>
+                  <span>.</span>
+                </li>
+                <li>
+                  <span className="_time_link">
+                    {timeAgo(comment.createdAt)}
+                  </span>
                 </li>
               </ul>
             </div>
