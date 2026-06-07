@@ -87,7 +87,7 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
         </Link>
       </div>
       <div className="_comment_area">
-        <div className="_comment_details">
+        <div className="_comment_details" style={{ maxWidth: "100%", marginBottom: "8px" }}>
           <div className="_comment_details_top">
             <div className="_comment_name">
               <Link href="#0">
@@ -149,7 +149,6 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                     onClick={handleReaction}
                   >
                     Like
-                    .
                   </span>
                 </li>
                 <li>
@@ -157,16 +156,14 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                     style={{ cursor: "pointer" }}
                     onClick={() => setShowReplyBox((s) => !s)}
                   >
-                    Reply.
+                    Reply
                   </span>
                 </li>
                 <li>
                   <span>Share</span>
                 </li>
                 <li>
-                  <span className="_time_link">
-                    .{timeAgo(comment.createdAt)}
-                  </span>
+                  <span className="_time_link">{timeAgo(comment.createdAt)}</span>
                 </li>
               </ul>
             </div>
