@@ -72,9 +72,39 @@ function CommentBox({ postId, onCommentAdded, parentId }) {
           </div>
 
           {previewUrl && (
-            <div style={{ position: "relative", display: "inline-block", marginLeft: "48px", marginTop: "6px" }}>
-              <img src={previewUrl} alt="Preview" style={{ borderRadius: "6px", maxWidth: "100px", maxHeight: "75px", objectFit: "cover" }} />
-              <button onClick={clearFile} style={{ position: "absolute", top: "-6px", right: "-6px", background: "#fff", border: "1px solid #ddd", borderRadius: "50%", width: "20px", height: "20px", cursor: "pointer", fontSize: "11px", lineHeight: "18px", textAlign: "center", padding: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.12)" }}>✕</button>
+            <div style={{ position: "relative", display: "inline-block", marginLeft: "48px", marginTop: "8px" }}>
+              <img
+                src={previewUrl}
+                alt="Preview"
+                style={{
+                  borderRadius: "8px",
+                  maxWidth: "180px",
+                  maxHeight: "120px",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+              <button
+                onClick={clearFile}
+                style={{
+                  position: "absolute",
+                  top: "-6px",
+                  right: "-6px",
+                  background: "rgba(0,0,0,0.6)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "22px",
+                  height: "22px",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  lineHeight: "22px",
+                  textAlign: "center",
+                  padding: 0,
+                }}
+              >
+                ✕
+              </button>
             </div>
           )}
 
