@@ -87,7 +87,7 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
         </Link>
       </div>
       <div className="_comment_area">
-        <div className="_comment_details" style={{ maxWidth: "100%", marginBottom: "8px" }}>
+        <div className="_comment_details">
           <div className="_comment_details_top">
             <div className="_comment_name">
               <Link href="#0">
