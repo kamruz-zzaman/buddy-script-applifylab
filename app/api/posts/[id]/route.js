@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
+import cache from "@/lib/utils/cache";
 import {
   getCurrentUserId,
   successResponse,
@@ -7,7 +8,7 @@ import {
 } from "@/lib/utils/auth";
 
 // GET - Fetch a single post
-export async function GET(request, { params }) {
+export async function GET(_, { params }) {
   try {
     const userId = await getCurrentUserId();
     if (!userId) {
@@ -20,15 +21,12 @@ export async function GET(request, { params }) {
 
     const post = await Post.findById(id)
       .populate("author", "firstName lastName")
-      .populate("reactions.user", "firstName lastName")
-      .setOptions({ strictPopulate: false })
       .lean();
 
     if (!post) {
       return errorResponse("Post not found", 404);
     }
 
-    // Check if user can view this post
     if (post.isPrivate && post.author._id.toString() !== userId) {
       return errorResponse("Not authorized to view this post", 403);
     }
@@ -41,7 +39,7 @@ export async function GET(request, { params }) {
 }
 
 // DELETE - Delete a post (only author)
-export async function DELETE(request, { params }) {
+export async function DELETE(_, { params }) {
   try {
     const userId = await getCurrentUserId();
     if (!userId) {
@@ -63,6 +61,9 @@ export async function DELETE(request, { params }) {
     }
 
     await Post.findByIdAndDelete(id);
+
+    // Invalidate feed cache
+    cache.invalidatePrefix("feed:");
 
     return successResponse({ message: "Post deleted successfully" });
   } catch (error) {

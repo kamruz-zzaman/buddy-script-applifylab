@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
 import Comment from "@/lib/models/Comment";
+import cache from "@/lib/utils/cache";
 import cloudinary from "@/lib/cloudinary";
 import {
   getCurrentUserId,
@@ -158,6 +159,9 @@ export async function POST(request, { params }) {
     // Increment post comment count
     post.commentsCount = post.commentsCount + 1;
     await post.save();
+
+    // Invalidate feed cache
+    cache.invalidatePrefix("feed:");
 
     await comment.populate("author", "firstName lastName");
 

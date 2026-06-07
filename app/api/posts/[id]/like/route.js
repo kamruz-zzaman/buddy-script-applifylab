@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
 import Reaction from "@/lib/models/Reaction";
+import cache from "@/lib/utils/cache";
 import {
   getCurrentUserId,
   successResponse,
@@ -67,6 +68,9 @@ export async function POST(request, { params }) {
     }
 
     await post.save();
+
+    // Invalidate feed cache since reaction counts changed
+    cache.invalidatePrefix("feed:");
 
     // Get the user's current reaction for response
     const myReaction = await Reaction.findOne({ post: id, user: userId });
