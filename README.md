@@ -4,14 +4,14 @@ A full-stack social media application built with Next.js 16, MongoDB, and Cloudi
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router) |
-| Database | MongoDB with Mongoose ODM |
-| Auth | JWT (access + refresh tokens) with AES-256-GCM encrypted cookies |
-| File Storage | Cloudinary (images/videos) |
-| Styling | Bootstrap 5 + custom CSS |
-| Runtime | Node.js (Turbopack dev server) |
+| Layer        | Technology                                                       |
+| ------------ | ---------------------------------------------------------------- |
+| Framework    | Next.js 16 (App Router)                                          |
+| Database     | MongoDB with Mongoose ODM                                        |
+| Auth         | JWT (access + refresh tokens) with AES-256-GCM encrypted cookies |
+| File Storage | Cloudinary (images/videos)                                       |
+| Styling      | Bootstrap 5 + custom CSS                                         |
+| Runtime      | Node.js (Turbopack dev server)                                   |
 
 ## Getting Started
 
@@ -41,10 +41,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Test Accounts
 
-| Email | Password |
-|-------|----------|
-| karim@example.com | password123 |
-| sarah@example.com | password123 |
+| Email                | Password    |
+| -------------------- | ----------- |
+| karim@example.com    | password123 |
+| sarah@example.com    | password123 |
 | mohammad@example.com | password123 |
 
 ---
@@ -206,6 +206,7 @@ proxy.js                 # Auth proxy (replaces deprecated middleware.js)
 ```
 
 Error responses:
+
 ```json
 {
   "success": false,
