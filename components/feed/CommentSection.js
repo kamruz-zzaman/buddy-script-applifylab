@@ -191,11 +191,9 @@ export default function CommentSection({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] =
     useState(!!initialComments);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMorePages, setHasMorePages] = useState(true);
 
   const INITIAL_LIMIT = 2;
-  const PAGE_SIZE = 10;
+  const LOAD_MORE_LIMIT = 50;
 
   // Fetch initial batch (only when no initial comments provided)
   const fetchInitial = useCallback(async () => {
@@ -208,8 +206,6 @@ export default function CommentSection({
       if (data?.success) {
         setAllComments(data.data.comments);
         setTotalComments(data.data.pagination?.total || 0);
-        setHasMorePages(data.data.pagination?.hasMore || false);
-        setCurrentPage(1);
         setHasInitiallyLoaded(true);
       }
     } catch {
@@ -218,27 +214,28 @@ export default function CommentSection({
     }
   }, [postId, hasInitiallyLoaded]);
 
-  // Load next page of older comments (appends, doesn't replace)
+  // Load all remaining comments with deduplication (avoids page-alignment issues with embedded comments)
   const loadMorePage = useCallback(async () => {
-    if (loadingMore || !hasMorePages) return;
+    if (loadingMore) return;
     setLoadingMore(true);
-    const nextPage = currentPage + 1;
     try {
       const res = await fetch(
-        `/api/posts/${postId}/comments?limit=${PAGE_SIZE}&page=${nextPage}`,
+        `/api/posts/${postId}/comments?limit=${LOAD_MORE_LIMIT}`,
       );
       const data = await res.json();
       if (data?.success) {
-        setAllComments((prev) => [...prev, ...data.data.comments]);
+        setAllComments((prev) => {
+          const existingIds = new Set(prev.map((c) => c._id));
+          const newOnes = data.data.comments.filter((c) => !existingIds.has(c._id));
+          return [...prev, ...newOnes];
+        });
         setTotalComments(data.data.pagination?.total || 0);
-        setHasMorePages(data.data.pagination?.hasMore || false);
-        setCurrentPage(nextPage);
       }
     } catch {
     } finally {
       setLoadingMore(false);
     }
-  }, [postId, loadingMore, hasMorePages, currentPage]);
+  }, [postId, loadingMore]);
 
   useEffect(() => {
     if (initialComments) {
@@ -246,13 +243,8 @@ export default function CommentSection({
       setTotalComments(initialTotal ?? 0);
       setHasInitiallyLoaded(true);
       setLoading(false);
-      setCurrentPage(1);
-      // hasMorePages = true only if total > what we have
-      setHasMorePages((initialTotal ?? 0) > (initialComments?.length || 0));
     } else {
       setLoading(true);
-      setHasMorePages(true);
-      setCurrentPage(1);
       fetchInitial();
     }
   }, [fetchInitial, refreshKey, initialComments, initialTotal]);
