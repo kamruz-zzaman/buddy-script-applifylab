@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
+import UserAvatar from "../common/UserAvatar";
 import PostComposerActions from "./PostComposerActions";
 import PostComposerActionsMobile from "./PostComposerActionsMobile";
 import { useFeedContext } from "../common/FeedContext";
 
 function PostComposer() {
-  const { setPosts } = useFeedContext();
+  const { setPosts, currentUser } = useFeedContext();
   const [content, setContent] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -70,13 +70,7 @@ function PostComposer() {
     <div className="_feed_inner_text_area _b_radious6 _padd_b24 _padd_t24 _padd_r24 _padd_l24 _mar_b16">
       <div className="_feed_inner_text_area_box">
         <div className="_feed_inner_text_area_box_image">
-          <Image
-            src="/assets/images/txt_img.png"
-            alt="Image"
-            width={800}
-            height={600}
-            className="_txt_img"
-          />
+          <UserAvatar user={currentUser} size={40} className="_txt_img" />
         </div>
         <div className="form-floating _feed_inner_text_area_box_form">
           <textarea

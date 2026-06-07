@@ -6,6 +6,7 @@ import Image from "next/image";
 import TimelineDropdownItem from "./TimelineDropdownItem";
 import CommentBox from "./CommentBox";
 import CommentSection from "./CommentSection";
+import UserAvatar from "../common/UserAvatar";
 import { useFeedContext } from "../common/FeedContext";
 import {
   SaveIcon,
@@ -214,18 +215,12 @@ function TimelinePost({ post }) {
           {reactionsCount > 0 ? (
             <>
               {topReactors.map((r, i) => (
-                <Image
+                <UserAvatar
                   key={i}
-                  src="/assets/images/post_img.png"
-                  alt={r.user?.firstName || "User"}
-                  width={18}
-                  height={18}
+                  user={r.user}
+                  size={18}
                   className={i === 0 ? "_react_img1" : "_react_img"}
-                  title={`${r.user?.firstName || "User"} reacted with ${r.type}`}
                   style={{
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "50%",
                     marginLeft: i > 0 ? "-6px" : "0",
                     border: "2px solid #fff",
                   }}

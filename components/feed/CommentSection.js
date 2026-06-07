@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import UserAvatar from "../common/UserAvatar";
 import { useFeedContext } from "../common/FeedContext";
 import CommentBox from "./CommentBox";
 
@@ -76,11 +77,9 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
     >
       <div className="_comment_image">
         <Link href="#0" className="_comment_image_link">
-          <Image
-            src="/assets/images/txt_img.png"
-            alt=""
-            width={800}
-            height={600}
+          <UserAvatar
+            user={comment.author}
+            size={34}
             className="_comment_img1"
           />
         </Link>

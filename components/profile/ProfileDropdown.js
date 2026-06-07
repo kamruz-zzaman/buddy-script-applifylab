@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import UserAvatar from "../common/UserAvatar";
 import { useFeedContext } from "../common/FeedContext";
 import ProfileDropdownItem from "./ProfileDropdownItem";
 import { SettingsIcon, HelpIcon, LogoutIcon } from "../common/icons";
@@ -31,13 +31,7 @@ function ProfileDropdown() {
   return (
     <div className="_header_nav_profile" ref={containerRef}>
       <div className="_header_nav_profile_image">
-        <Image
-          src="/assets/images/profile.png"
-          alt="Profile"
-          width={24}
-          height={24}
-          className="_nav_profile_img"
-        />
+        <UserAvatar user={currentUser} size={24} className="_nav_profile_img" />
       </div>
       <div className="_header_nav_dropdown">
         <p className="_header_nav_para">{userName}</p>
@@ -65,11 +59,9 @@ function ProfileDropdown() {
       >
         <div className="_nav_profile_dropdown_info">
           <div className="_nav_profile_dropdown_image">
-            <Image
-              src="/assets/images/profile.png"
-              alt="Profile"
-              width={40}
-              height={40}
+            <UserAvatar
+              user={currentUser}
+              size={40}
               className="_nav_drop_img"
             />
           </div>
