@@ -9,7 +9,8 @@
  *   node scripts/seed-bulk.js 1000000   # 1M posts
  *   node scripts/seed-bulk.js 10000000  # 10M posts
  *
- * The script creates users and posts in batches for performance.
+ * The script creates users, posts, and reactions in batches for performance.
+ * Reactions are stored in a separate collection (matches current architecture).
  */
 
 const mongoose = require("mongoose");
@@ -18,18 +19,6 @@ const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/buddy-script";
 
 // ─── Schemas (must match lib/models exactly) ────────────────────────────────
-
-const ReactionSchema = new mongoose.Schema(
-  {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    type: {
-      type: String,
-      enum: ["like", "love", "haha", "wow", "sad", "angry"],
-      required: true,
-    },
-  },
-  { _id: false },
-);
 
 const UserSchema = new mongoose.Schema(
   {
@@ -53,7 +42,7 @@ const PostSchema = new mongoose.Schema(
     imageUrl: { type: String, default: null },
     videoUrl: { type: String, default: null },
     isPrivate: { type: Boolean, default: false },
-    reactions: [ReactionSchema],
+    // No embedded reactions — stored in separate Reaction collection
     reactionCounts: {
       like: { type: Number, default: 0 },
       love: { type: Number, default: 0 },
@@ -72,8 +61,41 @@ PostSchema.index({ createdAt: -1 });
 PostSchema.index({ author: 1, createdAt: -1 });
 PostSchema.index({ isPrivate: 1, createdAt: -1 });
 
+const ReactionSchema = new mongoose.Schema(
+  {
+    post: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
+      index: true,
+    },
+    comment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null,
+      index: true,
+      sparse: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ["like", "love", "haha", "wow", "sad", "angry"],
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
+
+ReactionSchema.index({ post: 1, user: 1 }, { unique: true, sparse: true });
+ReactionSchema.index({ post: 1, createdAt: -1 });
+
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 const Post = mongoose.models.Post || mongoose.model("Post", PostSchema);
+const Reaction =
+  mongoose.models.Reaction || mongoose.model("Reaction", ReactionSchema);
 
 // ─── Data generators ────────────────────────────────────────────────────────
 
@@ -186,6 +208,7 @@ function randomInt(min, max) {
 async function seed() {
   const targetPosts = parseInt(process.argv[2]) || 100000;
   const BATCH_SIZE = 10000;
+  const REACTION_BATCH = 50000;
 
   console.log(
     `\n🚀 Starting bulk seed: ${targetPosts.toLocaleString()} posts\n`,
@@ -216,7 +239,6 @@ async function seed() {
         email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${i + existingUserCount}@example.com`,
         password: "$2a$12$dummyhashvalue",
       });
-
       if (userBatches.length >= BATCH_SIZE || i === needsNew - 1) {
         const created = await User.insertMany(userBatches, { ordered: false });
         users.push(...created);
@@ -232,55 +254,25 @@ async function seed() {
   users = await User.find().limit(userCount).lean();
   console.log(`   Total users: ${users.length}\n`);
 
-  // Step 2: Remove existing posts (optional - comment out to append)
+  // Step 2: Check existing posts
   const existingPostCount = await Post.countDocuments();
   if (existingPostCount > 0) {
     console.log(
-      `⚠️  Found ${existingPostCount.toLocaleString()} existing posts.`,
+      `⚠️  Found ${existingPostCount.toLocaleString()} existing posts. Appending...\n`,
     );
-    console.log(`   Appending new posts...\n`);
   }
 
-  // Step 3: Create posts in batches
+  // Step 3: Create posts in batches (no embedded reactions)
   console.log(`📝 Creating ${targetPosts.toLocaleString()} posts...`);
   const startTime = Date.now();
   let created = 0;
   const postBatches = [];
+  const newPostIds = []; // Track new posts for reaction creation
 
   for (let i = 0; i < targetPosts; i++) {
     const author = randomFrom(users);
     const content = randomFrom(POST_CONTENTS);
-    const isPrivate = Math.random() < 0.05; // 5% private
-
-    // Random reactions from random users
-    const numReactions = randomInt(0, 15);
-    const reactionUsers = new Set();
-    const reactions = [];
-
-    for (let j = 0; j < numReactions; j++) {
-      const reactor = randomFrom(users);
-      if (reactor._id.toString() === author._id.toString()) continue;
-      if (reactionUsers.has(reactor._id.toString())) continue;
-      reactionUsers.add(reactor._id.toString());
-      reactions.push({
-        user: reactor._id,
-        type: randomFrom(REACTION_TYPES),
-      });
-    }
-
-    const reactionCounts = {
-      like: 0,
-      love: 0,
-      haha: 0,
-      wow: 0,
-      sad: 0,
-      angry: 0,
-    };
-    reactions.forEach((r) => {
-      reactionCounts[r.type] = (reactionCounts[r.type] || 0) + 1;
-    });
-
-    // Random date within last 365 days
+    const isPrivate = Math.random() < 0.05;
     const daysAgo = randomInt(0, 365);
     const createdAt = new Date(Date.now() - daysAgo * 86400000);
 
@@ -288,41 +280,112 @@ async function seed() {
       author: author._id,
       content,
       isPrivate,
-      reactions,
-      reactionCounts,
-      reactionsCount: reactions.length,
+      reactionCounts: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
+      reactionsCount: 0,
       commentsCount: randomInt(0, 50),
       createdAt,
       updatedAt: createdAt,
     });
 
     if (postBatches.length >= BATCH_SIZE || i === targetPosts - 1) {
-      await Post.insertMany(postBatches, { ordered: false });
+      const inserted = await Post.insertMany(postBatches, { ordered: false });
+      newPostIds.push(
+        ...inserted.map((p) => ({ _id: p._id, author: p.author })),
+      );
       created += postBatches.length;
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       const rate = Math.floor((created / (Date.now() - startTime)) * 1000);
       process.stdout.write(
-        `\r   Created: ${created.toLocaleString()} / ${targetPosts.toLocaleString()} (${rate}/s, ${elapsed}s)`,
+        `\r   Posts: ${created.toLocaleString()} / ${targetPosts.toLocaleString()} (${rate}/s, ${elapsed}s)`,
       );
       postBatches.length = 0;
     }
   }
 
-  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  const postTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`\n   ✅ Posts done in ${postTime}s\n`);
+
+  // Step 4: Create reactions only for new posts
   console.log(
-    `\n\n✅ Done! Created ${created.toLocaleString()} posts in ${totalTime}s`,
+    `📝 Creating reactions for ${newPostIds.length.toLocaleString()} new posts...`,
   );
+  const reactionStart = Date.now();
+  let reactionCount = 0;
+  const reactionBatches = [];
+  const postUpdates = new Map();
+
+  for (const post of newPostIds) {
+    const numReactions = randomInt(0, 15);
+    const reactionUsers = new Set(); // per-post: prevent same user reacting twice
+    const counts = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+    let total = 0;
+
+    for (let j = 0; j < numReactions; j++) {
+      const reactor = randomFrom(users);
+      if (reactor._id.toString() === post.author.toString()) continue;
+      if (reactionUsers.has(reactor._id.toString())) continue;
+      reactionUsers.add(reactor._id.toString());
+
+      const rType = randomFrom(REACTION_TYPES);
+      reactionBatches.push({ post: post._id, user: reactor._id, type: rType });
+      counts[rType]++;
+      total++;
+    }
+
+    if (total > 0) {
+      postUpdates.set(post._id.toString(), { counts, total });
+    }
+
+    if (reactionBatches.length >= REACTION_BATCH) {
+      await Reaction.insertMany(reactionBatches, { ordered: false });
+      reactionCount += reactionBatches.length;
+      process.stdout.write(`\r   Reactions: ${reactionCount.toLocaleString()}`);
+      reactionBatches.length = 0;
+    }
+  }
+
+  // Flush remaining reactions
+  if (reactionBatches.length > 0) {
+    await Reaction.insertMany(reactionBatches, { ordered: false });
+    reactionCount += reactionBatches.length;
+  }
+
+  const reactionTime = ((Date.now() - reactionStart) / 1000).toFixed(1);
   console.log(
-    `   Rate: ${Math.floor((created / (Date.now() - startTime)) * 1000)} posts/sec\n`,
+    `\n   ✅ ${reactionCount.toLocaleString()} reactions in ${reactionTime}s\n`,
   );
 
-  // Step 4: Summary
+  // Step 5: Update post reaction counts via bulkWrite
+  console.log(`📝 Updating reaction counts on posts...`);
+  const bulkOps = [];
+  for (const [postId, { counts, total }] of postUpdates) {
+    bulkOps.push({
+      updateOne: {
+        filter: { _id: new mongoose.Types.ObjectId(postId) },
+        update: { $set: { reactionCounts: counts, reactionsCount: total } },
+      },
+    });
+    if (bulkOps.length >= BATCH_SIZE) {
+      await Post.bulkWrite(bulkOps);
+      bulkOps.length = 0;
+    }
+  }
+  if (bulkOps.length > 0) {
+    await Post.bulkWrite(bulkOps);
+  }
+  console.log(`   ✅ Counts updated\n`);
+
+  // Step 6: Summary
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
   const finalUsers = await User.countDocuments();
   const finalPosts = await Post.countDocuments();
+  const finalReactions = await Reaction.countDocuments();
+
   console.log(`📊 Database Summary:`);
-  console.log(`   Users: ${finalUsers.toLocaleString()}`);
-  console.log(`   Posts: ${finalPosts.toLocaleString()}`);
-  console.log(`   Indexes: createdAt, author+createdAt, isPrivate+createdAt\n`);
+  console.log(`   Users:     ${finalUsers.toLocaleString()}`);
+  console.log(`   Posts:     ${finalPosts.toLocaleString()}`);
+  console.log(`   Reactions: ${finalReactions.toLocaleString()}`);
+  console.log(`   Total time: ${totalTime}s\n`);
 
   await mongoose.disconnect();
   console.log("👋 Done!\n");

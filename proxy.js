@@ -8,6 +8,7 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/refresh",
+  "/api/seed",
 ];
 
 // Exact paths that require authentication
