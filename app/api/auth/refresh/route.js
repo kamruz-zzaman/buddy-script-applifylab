@@ -48,7 +48,7 @@ export async function POST(request) {
     }
 
     // 4. Check that the token hash matches (prevents reuse of revoked tokens)
-    const tokenHash = hashToken(refreshToken);
+    const tokenHash = await hashToken(refreshToken);
     if (session.refreshTokenHash !== tokenHash) {
       // Token may have been reused — revoke ALL sessions for this user (breach detection)
       await Session.deleteMany({ userId: session.userId });
@@ -93,7 +93,7 @@ export async function POST(request) {
     );
 
     // 9. Store the hash of the new refresh token
-    newSession.refreshTokenHash = hashToken(newRefreshToken);
+    newSession.refreshTokenHash = await hashToken(newRefreshToken);
     await newSession.save();
 
     // 10. Set cookies

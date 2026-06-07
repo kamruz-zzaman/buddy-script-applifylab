@@ -51,26 +51,27 @@ export async function POST(request) {
 
     const userId = user._id.toString();
 
-    // Create a session record
-    const session = await Session.create({
+    // Generate refresh token first so we can store its hash in the session
+    const accessToken = await generateAccessToken(userId);
+
+    // We need a session ID for the refresh token — create a temp ObjectId
+    const { default: mongoose } = await import("mongoose");
+    const sessionId = new mongoose.Types.ObjectId();
+    const refreshToken = await generateRefreshToken(
       userId,
-      refreshTokenHash: "", // placeholder — set after token generation
+      sessionId.toString(),
+    );
+
+    // Create session with the hash already populated
+    const session = await Session.create({
+      _id: sessionId,
+      userId,
+      refreshTokenHash: await hashToken(refreshToken),
       userAgent: request.headers.get("user-agent") || "Unknown",
       ip,
       lastActivity: new Date(),
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     });
-
-    // Generate tokens
-    const accessToken = await generateAccessToken(userId);
-    const refreshToken = await generateRefreshToken(
-      userId,
-      session._id.toString(),
-    );
-
-    // Store the hashed refresh token in the session
-    session.refreshTokenHash = hashToken(refreshToken);
-    await session.save();
 
     // Set httpOnly cookies
     await setAccessTokenCookie(accessToken);
