@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
+import Reaction from "@/lib/models/Reaction";
 import {
   getCurrentUserId,
   successResponse,
@@ -33,44 +34,42 @@ export async function POST(request, { params }) {
       return errorResponse("Not authorized", 403);
     }
 
-    // Find existing reaction by this user
-    const existingIdx = post.reactions.findIndex(
-      (r) => r.user.toString() === userId,
-    );
+    // Find existing reaction in Reaction collection
+    const existing = await Reaction.findOne({ post: id, user: userId });
 
-    if (existingIdx !== -1) {
-      const existingType = post.reactions[existingIdx].type;
-
-      if (existingType === reactionType) {
-        // Same reaction - remove it (toggle off)
-        post.reactionCounts[existingType] = Math.max(
+    if (existing) {
+      if (existing.type === reactionType) {
+        // Same reaction — remove (toggle off)
+        await Reaction.findByIdAndDelete(existing._id);
+        post.reactionCounts[existing.type] = Math.max(
           0,
-          post.reactionCounts[existingType] - 1,
+          (post.reactionCounts[existing.type] || 0) - 1,
         );
-        post.reactionsCount = Math.max(0, post.reactionsCount - 1);
-        post.reactions.splice(existingIdx, 1);
+        post.reactionsCount = Math.max(0, (post.reactionsCount || 0) - 1);
       } else {
-        // Different reaction - change it
-        post.reactionCounts[existingType] = Math.max(
+        // Different reaction — change type
+        existing.type = reactionType;
+        await existing.save();
+        post.reactionCounts[existing.type] = Math.max(
           0,
-          post.reactionCounts[existingType] - 1,
+          (post.reactionCounts[existing.type] || 0) - 1,
         );
-        post.reactions[existingIdx].type = reactionType;
+        // No need to decrement the old type since we changed it
         post.reactionCounts[reactionType] =
           (post.reactionCounts[reactionType] || 0) + 1;
       }
     } else {
       // New reaction
-      post.reactions.push({ user: userId, type: reactionType });
+      await Reaction.create({ post: id, user: userId, type: reactionType });
       post.reactionCounts[reactionType] =
         (post.reactionCounts[reactionType] || 0) + 1;
-      post.reactionsCount = post.reactionsCount + 1;
+      post.reactionsCount = (post.reactionsCount || 0) + 1;
     }
 
     await post.save();
 
-    // Get the user's current reaction
-    const myReaction = post.reactions.find((r) => r.user.toString() === userId);
+    // Get the user's current reaction for response
+    const myReaction = await Reaction.findOne({ post: id, user: userId });
 
     return successResponse({
       myReaction: myReaction ? myReaction.type : null,
@@ -94,9 +93,7 @@ export async function GET(request, { params }) {
     await dbConnect();
 
     const { id } = await params;
-    const post = await Post.findById(id)
-      .populate("reactions.user", "firstName lastName")
-      .lean();
+    const post = await Post.findById(id).lean();
 
     if (!post) {
       return errorResponse("Post not found", 404);
@@ -106,12 +103,20 @@ export async function GET(request, { params }) {
       return errorResponse("Not authorized", 403);
     }
 
-    const myReaction = post.reactions.find(
-      (r) => r.user._id?.toString() === userId || r.user.toString() === userId,
-    );
+    // Fetch top 3 reactors for display
+    const topReactions = await Reaction.find({ post: id })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate("user", "firstName lastName")
+      .lean();
+
+    const myReaction = await Reaction.findOne({
+      post: id,
+      user: userId,
+    }).lean();
 
     return successResponse({
-      reactions: post.reactions,
+      topReactions,
       reactionCounts: post.reactionCounts,
       reactionsCount: post.reactionsCount,
       myReaction: myReaction ? myReaction.type : null,

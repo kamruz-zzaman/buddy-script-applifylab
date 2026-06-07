@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
 import Comment from "@/lib/models/Comment";
+import Reaction from "@/lib/models/Reaction";
 import cloudinary from "@/lib/cloudinary";
 import {
   getCurrentUserId,
@@ -104,19 +105,24 @@ export async function GET(request) {
 
     const posts = await Post.find(query)
       .sort({ _id: -1 })
-      .limit(limit + 1) // fetch one extra to check hasMore
+      .limit(limit + 1)
       .populate("author", "firstName lastName")
-      .populate("reactions.user", "firstName lastName")
-      .setOptions({ strictPopulate: false })
       .lean();
 
     const hasMore = posts.length > limit;
     if (hasMore) posts.pop(); // remove the extra item
 
-    // Embed first 2 comments (with replies) for each post
+    // Embed first 2 comments (with replies) and top reactors for each post
     const COMMENT_PREVIEW = 2;
     const postsWithComments = await Promise.all(
       posts.map(async (post) => {
+        // Fetch top 3 reactors for display
+        const topReactions = await Reaction.find({ post: post._id })
+          .sort({ createdAt: -1 })
+          .limit(3)
+          .populate("user", "firstName lastName")
+          .lean();
+
         const totalComments = await Comment.countDocuments({
           post: post._id,
           parent: null,
@@ -130,8 +136,6 @@ export async function GET(request) {
             .sort({ createdAt: -1 })
             .limit(COMMENT_PREVIEW)
             .populate("author", "firstName lastName")
-            .populate("reactions.user", "firstName lastName")
-            .setOptions({ strictPopulate: false })
             .lean();
           // Fetch replies for each comment
           comments = await Promise.all(
@@ -139,14 +143,12 @@ export async function GET(request) {
               const replies = await Comment.find({ parent: c._id })
                 .sort({ createdAt: 1 })
                 .populate("author", "firstName lastName")
-                .populate("reactions.user", "firstName lastName")
-                .setOptions({ strictPopulate: false })
                 .lean();
               return { ...c, replies };
             }),
           );
         }
-        return { ...post, comments, totalComments };
+        return { ...post, comments, totalComments, topReactions };
       }),
     );
 

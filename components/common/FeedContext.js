@@ -140,7 +140,7 @@ export function FeedProvider({ children }) {
         content: postData.content || "",
         imageUrl: postData.imageUrl || null,
         isPrivate: postData.isPrivate || false,
-        reactions: [],
+        topReactions: [],
         reactionCounts: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
         reactionsCount: 0,
         commentsCount: 0,
@@ -168,69 +168,44 @@ export function FeedProvider({ children }) {
     [currentUser],
   );
 
-  // ─── Optimistic: Toggle reaction (no refetch) ────────────────────────
+  // ─── Optimistic: Toggle reaction (counts only, server returns full state) ──
   const togglePostReaction = useCallback(
     async (postId, reactionType = "like") => {
-      // Optimistic: update immediately
+      // Optimistic: update reaction counts immediately
       setPosts((prev) =>
         prev.map((p) => {
           if (p._id !== postId) return p;
-          const existingReaction = p.reactions?.find(
-            (r) => (r.user?._id || r.user) === currentUser?.id,
-          );
           const newReactionCounts = { ...p.reactionCounts };
-          let newReactions = [...(p.reactions || [])];
-          let newReactionsCount = p.reactionsCount || 0;
-
-          if (existingReaction) {
-            if (existingReaction.type === reactionType) {
-              // Remove reaction
-              newReactions = newReactions.filter(
-                (r) => (r.user?._id || r.user) !== currentUser?.id,
-              );
-              newReactionCounts[existingReaction.type] = Math.max(
-                0,
-                (newReactionCounts[existingReaction.type] || 0) - 1,
-              );
-              newReactionsCount = Math.max(0, newReactionsCount - 1);
-            } else {
-              // Change reaction type
-              newReactions = newReactions.map((r) =>
-                (r.user?._id || r.user) === currentUser?.id
-                  ? { ...r, type: reactionType }
-                  : r,
-              );
-              newReactionCounts[existingReaction.type] = Math.max(
-                0,
-                (newReactionCounts[existingReaction.type] || 0) - 1,
-              );
-              newReactionCounts[reactionType] =
-                (newReactionCounts[reactionType] || 0) + 1;
-            }
-          } else {
-            // Add reaction
-            newReactions.push({
-              user: { _id: currentUser?.id },
-              type: reactionType,
-            });
-            newReactionCounts[reactionType] =
-              (newReactionCounts[reactionType] || 0) + 1;
-            newReactionsCount++;
-          }
+          // Simple optimistic toggle — server will correct if needed
+          newReactionCounts[reactionType] =
+            (newReactionCounts[reactionType] || 0) + 1;
           return {
             ...p,
-            reactions: newReactions,
             reactionCounts: newReactionCounts,
-            reactionsCount: newReactionsCount,
+            reactionsCount: (p.reactionsCount || 0) + 1,
           };
         }),
       );
 
-      // Server sync (fire and forget)
-      apiFetch(`/api/posts/${postId}/like`, {
+      // Server sync — response contains correct counts
+      const data = await apiFetch(`/api/posts/${postId}/like`, {
         method: "POST",
         body: JSON.stringify({ type: reactionType }),
       });
+      if (data?.success) {
+        // Correct with server state
+        setPosts((prev) =>
+          prev.map((p) =>
+            p._id === postId
+              ? {
+                  ...p,
+                  reactionCounts: data.data.reactionCounts,
+                  reactionsCount: data.data.reactionsCount,
+                }
+              : p,
+          ),
+        );
+      }
       return true;
     },
     [currentUser],

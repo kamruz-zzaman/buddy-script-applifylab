@@ -8,7 +8,7 @@ import {
   errorResponse,
 } from "@/lib/utils/auth";
 
-// GET - Fetch comments for a post
+// GET - Fetch comments for a post (cursor-based)
 export async function GET(request, { params }) {
   try {
     const userId = await getCurrentUserId();
@@ -30,25 +30,27 @@ export async function GET(request, { params }) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page")) || 1);
     const limit = Math.min(
       50,
       Math.max(1, parseInt(searchParams.get("limit")) || 20),
     );
-    const skip = (page - 1) * limit;
+    const cursor = searchParams.get("cursor");
 
-    // Fetch top-level comments (parent is null) with pagination
-    const [comments, total] = await Promise.all([
-      Comment.find({ post: postId, parent: null })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("author", "firstName lastName")
-        .populate("reactions.user", "firstName lastName")
-        .setOptions({ strictPopulate: false })
-        .lean(),
-      Comment.countDocuments({ post: postId, parent: null }),
-    ]);
+    // Build query with cursor
+    const query = { post: postId, parent: null };
+    if (cursor) {
+      const { default: mongoose } = await import("mongoose");
+      query._id = { $lt: new mongoose.Types.ObjectId(cursor) };
+    }
+
+    const comments = await Comment.find(query)
+      .sort({ _id: -1 })
+      .limit(limit + 1)
+      .populate("author", "firstName lastName")
+      .lean();
+
+    const hasMore = comments.length > limit;
+    if (hasMore) comments.pop();
 
     // For each top-level comment, fetch its replies
     const commentsWithReplies = await Promise.all(
@@ -56,21 +58,24 @@ export async function GET(request, { params }) {
         const replies = await Comment.find({ parent: comment._id })
           .sort({ createdAt: 1 })
           .populate("author", "firstName lastName")
-          .setOptions({ strictPopulate: false })
-          .populate("reactions.user", "firstName lastName")
           .lean();
         return { ...comment, replies };
       }),
     );
 
+    const total = await Comment.countDocuments({ post: postId, parent: null });
+    const nextCursor =
+      commentsWithReplies.length > 0
+        ? commentsWithReplies[commentsWithReplies.length - 1]._id
+        : null;
+
     return successResponse({
       comments: commentsWithReplies,
       pagination: {
-        page,
         limit,
+        nextCursor,
+        hasMore,
         total,
-        totalPages: Math.ceil(total / limit),
-        hasMore: skip + comments.length < total,
       },
     });
   } catch (error) {

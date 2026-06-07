@@ -2,9 +2,18 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import Post from "@/lib/models/Post";
 import Comment from "@/lib/models/Comment";
+import Reaction from "@/lib/models/Reaction";
 import { successResponse, errorResponse } from "@/lib/utils/auth";
 
-export async function GET() {
+export async function GET(request) {
+  // Only allow in development or with SEED_TOKEN
+  if (process.env.NODE_ENV === "production") {
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get("token");
+    if (!process.env.SEED_TOKEN || token !== process.env.SEED_TOKEN) {
+      return errorResponse("Unauthorized", 403);
+    }
+  }
   try {
     await dbConnect();
 
@@ -13,6 +22,7 @@ export async function GET() {
       User.deleteMany({}),
       Post.deleteMany({}),
       Comment.deleteMany({}),
+      Reaction.deleteMany({}),
     ]);
 
     // Seed users (password: "password123")

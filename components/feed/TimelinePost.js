@@ -107,7 +107,7 @@ function TimelinePost({ post }) {
     [post._id, incrementCommentsCount],
   );
 
-  const topReactors = (post?.reactions || []).slice(0, 3);
+  const topReactors = (post?.topReactions || []).slice(0, 3);
 
   if (!post) return null;
 

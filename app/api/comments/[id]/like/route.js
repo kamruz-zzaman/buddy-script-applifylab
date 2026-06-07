@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/mongodb";
 import Comment from "@/lib/models/Comment";
+import Reaction from "@/lib/models/Reaction";
 import Post from "@/lib/models/Post";
 import {
   getCurrentUserId,
@@ -36,41 +37,43 @@ export async function POST(request, { params }) {
       return errorResponse("Not authorized", 403);
     }
 
-    // Find existing reaction
-    const existingIdx = comment.reactions.findIndex(
-      (r) => r.user.toString() === userId,
-    );
+    // Find existing reaction in Reaction collection
+    const existing = await Reaction.findOne({
+      comment: commentId,
+      user: userId,
+    });
 
-    if (existingIdx !== -1) {
-      const existingType = comment.reactions[existingIdx].type;
-      if (existingType === reactionType) {
-        comment.reactionCounts[existingType] = Math.max(
+    if (existing) {
+      if (existing.type === reactionType) {
+        await Reaction.findByIdAndDelete(existing._id);
+        comment.reactionCounts[existing.type] = Math.max(
           0,
-          comment.reactionCounts[existingType] - 1,
+          (comment.reactionCounts[existing.type] || 0) - 1,
         );
-        comment.reactionsCount = Math.max(0, comment.reactionsCount - 1);
-        comment.reactions.splice(existingIdx, 1);
+        comment.reactionsCount = Math.max(0, (comment.reactionsCount || 0) - 1);
       } else {
-        comment.reactionCounts[existingType] = Math.max(
-          0,
-          comment.reactionCounts[existingType] - 1,
-        );
-        comment.reactions[existingIdx].type = reactionType;
+        existing.type = reactionType;
+        await existing.save();
         comment.reactionCounts[reactionType] =
           (comment.reactionCounts[reactionType] || 0) + 1;
       }
     } else {
-      comment.reactions.push({ user: userId, type: reactionType });
+      await Reaction.create({
+        comment: commentId,
+        user: userId,
+        type: reactionType,
+      });
       comment.reactionCounts[reactionType] =
         (comment.reactionCounts[reactionType] || 0) + 1;
-      comment.reactionsCount = comment.reactionsCount + 1;
+      comment.reactionsCount = (comment.reactionsCount || 0) + 1;
     }
 
     await comment.save();
 
-    const myReaction = comment.reactions.find(
-      (r) => r.user.toString() === userId,
-    );
+    const myReaction = await Reaction.findOne({
+      comment: commentId,
+      user: userId,
+    }).lean();
 
     return successResponse({
       myReaction: myReaction ? myReaction.type : null,
