@@ -98,7 +98,13 @@ export function FeedProvider({ children }) {
     initialized.current = true;
     (async () => {
       const data = await apiFetch("/api/auth/me");
-      if (data?.success) setCurrentUser(data.data.user);
+      if (data?.success) {
+        setCurrentUser(data.data.user);
+      } else {
+        // User deleted or session invalid — redirect to login
+        setInitialLoading(false);
+        window.location.href = "/login";
+      }
     })();
   }, []);
 

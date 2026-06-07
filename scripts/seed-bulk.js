@@ -9,8 +9,7 @@
  *   node scripts/seed-bulk.js 1000000   # 1M posts
  *   node scripts/seed-bulk.js 10000000  # 10M posts
  *
- * The script creates users, posts, and reactions in batches for performance.
- * Reactions are stored in a separate collection (matches current architecture).
+ * The script creates users, posts, comments, and reactions in batches.
  */
 
 const mongoose = require("mongoose");
@@ -92,10 +91,48 @@ const ReactionSchema = new mongoose.Schema(
 ReactionSchema.index({ post: 1, user: 1 }, { unique: true, sparse: true });
 ReactionSchema.index({ post: 1, createdAt: -1 });
 
+const CommentSchema = new mongoose.Schema(
+  {
+    post: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
+      required: true,
+      index: true,
+    },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    content: { type: String, trim: true },
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null,
+      index: true,
+    },
+    reactionCounts: {
+      like: { type: Number, default: 0 },
+      love: { type: Number, default: 0 },
+      haha: { type: Number, default: 0 },
+      wow: { type: Number, default: 0 },
+      sad: { type: Number, default: 0 },
+      angry: { type: Number, default: 0 },
+    },
+    reactionsCount: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
+
+CommentSchema.index({ post: 1, createdAt: -1 });
+CommentSchema.index({ parent: 1 });
+
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 const Post = mongoose.models.Post || mongoose.model("Post", PostSchema);
 const Reaction =
   mongoose.models.Reaction || mongoose.model("Reaction", ReactionSchema);
+const Comment =
+  mongoose.models.Comment || mongoose.model("Comment", CommentSchema);
 
 // ─── Data generators ────────────────────────────────────────────────────────
 
@@ -193,6 +230,47 @@ const POST_CONTENTS = [
   "Traveling to a new city for a tech meetup. Can't wait to network! ✈️",
 ];
 
+const COMMENT_CONTENTS = [
+  "This is awesome! Keep up the great work! 👏",
+  "Totally agree with this!",
+  "Great post! Thanks for sharing.",
+  "Love this! So inspiring.",
+  "Couldn't agree more. Well said!",
+  "Amazing work! 🔥",
+  "Thanks for sharing your experience!",
+  "This is exactly what I needed to hear today.",
+  "Fantastic job! You're crushing it.",
+  "Wow, that's incredible! Tell us more!",
+  "Really helpful, thanks!",
+  "I had a similar experience. Great minds think alike 😄",
+  "This is gold! Saving this for later.",
+  "So true! This resonates with me deeply.",
+  "You always share the best content!",
+  "Respect! Hard work always pays off.",
+  "I'm inspired! Time to get to work. 💪",
+  "Brilliant! Keep these coming.",
+  "Love the energy in this post!",
+  "This made my day. Thank you!",
+  "What tools did you use for this?",
+  "Can you share more details?",
+  "Interesting perspective! I see it differently though.",
+  "I've been wanting to try this. Any tips for beginners?",
+  "This is next level! 🚀",
+];
+
+const REPLY_CONTENTS = [
+  "Thanks! Really appreciate it 😊",
+  "Glad you liked it!",
+  "Great question! I'll share more details soon.",
+  "Absolutely, I'll put together a follow-up post.",
+  "Thanks for the kind words!",
+  "Happy to help! Let me know if you have more questions.",
+  "You're too kind! Thank you 🙏",
+  "Right back at you!",
+  "I use a mix of tools depending on the project. Happy to share specifics!",
+  "Start small and be consistent — that's my best advice!",
+];
+
 const REACTION_TYPES = ["like", "love", "haha", "wow", "sad", "angry"];
 
 function randomFrom(arr) {
@@ -282,7 +360,7 @@ async function seed() {
       isPrivate,
       reactionCounts: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
       reactionsCount: 0,
-      commentsCount: randomInt(0, 50),
+      commentsCount: 0,
       createdAt,
       updatedAt: createdAt,
     });
@@ -375,16 +453,161 @@ async function seed() {
   }
   console.log(`   ✅ Counts updated\n`);
 
-  // Step 6: Summary
+  // Step 6: Generate comments (for ~30% of new posts)
+  const COMMENT_BATCH = 10000;
+  const COMMENT_POST_FRACTION = 0.3;
+  console.log(`📝 Creating comments...`);
+  const commentStart = Date.now();
+  let commentCount = 0;
+  const commentBatches = [];
+  const commentCountUpdates = new Map();
+
+  // Shuffle and pick ~30% of posts to receive comments
+  const shuffledPosts = [...newPostIds].sort(() => 0.5 - Math.random());
+  const postsForComments = shuffledPosts.slice(
+    0,
+    Math.floor(shuffledPosts.length * COMMENT_POST_FRACTION),
+  );
+
+  for (const post of postsForComments) {
+    const numComments = randomInt(1, 15);
+    const topLevelComments = [];
+
+    for (let j = 0; j < numComments; j++) {
+      const commentAuthor = randomFrom(users);
+      if (commentAuthor._id.toString() === post.author.toString()) continue;
+
+      const daysOffset = randomInt(0, 30);
+      const commentCreatedAt = new Date(Date.now() - daysOffset * 86400000);
+
+      const commentDoc = {
+        post: post._id,
+        author: commentAuthor._id,
+        content: randomFrom(COMMENT_CONTENTS),
+        parent: null,
+        reactionCounts: {
+          like: 0,
+          love: 0,
+          haha: 0,
+          wow: 0,
+          sad: 0,
+          angry: 0,
+        },
+        reactionsCount: 0,
+        createdAt: commentCreatedAt,
+        updatedAt: commentCreatedAt,
+      };
+
+      topLevelComments.push(commentDoc);
+      commentBatches.push(commentDoc);
+
+      if (commentBatches.length >= COMMENT_BATCH) {
+        await Comment.insertMany(commentBatches, { ordered: false });
+        commentCount += commentBatches.length;
+        process.stdout.write(`\r   Comments: ${commentCount.toLocaleString()}`);
+        commentBatches.length = 0;
+      }
+    }
+  }
+
+  // Flush remaining comments
+  if (commentBatches.length > 0) {
+    await Comment.insertMany(commentBatches, { ordered: false });
+    commentCount += commentBatches.length;
+  }
+
+  // Step 7: Generate replies (~10% of comments get 1-3 replies)
+  console.log(`\n📝 Creating comment replies...`);
+  const allComments = await Comment.find({
+    post: { $in: postsForComments.map((p) => p._id) },
+    parent: null,
+  }).lean();
+
+  const replyBatches = [];
+  let replyCount = 0;
+  const repliesToMake = Math.floor(allComments.length * 0.1);
+
+  for (let i = 0; i < repliesToMake; i++) {
+    const parentComment = randomFrom(allComments);
+    const replyAuthor = randomFrom(users);
+    const numReplies = randomInt(1, 3);
+
+    for (let r = 0; r < numReplies; r++) {
+      const daysOffset = randomInt(0, 14);
+      replyBatches.push({
+        post: parentComment.post,
+        author: replyAuthor._id,
+        content: randomFrom(REPLY_CONTENTS),
+        parent: parentComment._id,
+        reactionCounts: {
+          like: 0,
+          love: 0,
+          haha: 0,
+          wow: 0,
+          sad: 0,
+          angry: 0,
+        },
+        reactionsCount: 0,
+        createdAt: new Date(Date.now() - daysOffset * 86400000),
+        updatedAt: new Date(),
+      });
+
+      if (replyBatches.length >= COMMENT_BATCH) {
+        await Comment.insertMany(replyBatches, { ordered: false });
+        replyCount += replyBatches.length;
+        process.stdout.write(`\r   Replies: ${replyCount.toLocaleString()}`);
+        replyBatches.length = 0;
+      }
+    }
+  }
+
+  if (replyBatches.length > 0) {
+    await Comment.insertMany(replyBatches, { ordered: false });
+    replyCount += replyBatches.length;
+  }
+
+  const commentTime = ((Date.now() - commentStart) / 1000).toFixed(1);
+  const totalComments = commentCount + replyCount;
+  console.log(
+    `\n   ✅ ${totalComments.toLocaleString()} comments (${commentCount.toLocaleString()} top-level + ${replyCount.toLocaleString()} replies) in ${commentTime}s\n`,
+  );
+
+  // Step 8: Update commentsCount on posts
+  console.log(`📝 Updating comment counts on posts...`);
+  const commentBulkOps = [];
+  for (const post of postsForComments) {
+    const count = await Comment.countDocuments({
+      post: post._id,
+      parent: null,
+    });
+    commentBulkOps.push({
+      updateOne: {
+        filter: { _id: post._id },
+        update: { $set: { commentsCount: count } },
+      },
+    });
+    if (commentBulkOps.length >= BATCH_SIZE) {
+      await Post.bulkWrite(commentBulkOps);
+      commentBulkOps.length = 0;
+    }
+  }
+  if (commentBulkOps.length > 0) {
+    await Post.bulkWrite(commentBulkOps);
+  }
+  console.log(`   ✅ Comment counts updated\n`);
+
+  // Step 9: Summary
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
   const finalUsers = await User.countDocuments();
   const finalPosts = await Post.countDocuments();
   const finalReactions = await Reaction.countDocuments();
+  const finalComments = await Comment.countDocuments();
 
   console.log(`📊 Database Summary:`);
   console.log(`   Users:     ${finalUsers.toLocaleString()}`);
   console.log(`   Posts:     ${finalPosts.toLocaleString()}`);
   console.log(`   Reactions: ${finalReactions.toLocaleString()}`);
+  console.log(`   Comments:  ${finalComments.toLocaleString()}`);
   console.log(`   Total time: ${totalTime}s\n`);
 
   await mongoose.disconnect();

@@ -104,35 +104,33 @@ export async function GET(request) {
       },
     ]);
 
-    // Add some reactions (various types)
-    await Promise.all(
-      posts.map((post) => {
-        const otherUsers = users.filter(
-          (u) => u._id.toString() !== post.author.toString(),
-        );
-        const shuffled = otherUsers.sort(() => 0.5 - Math.random());
-        const reactionTypes = ["like", "love", "haha", "wow", "sad"];
-        const reactors = shuffled.slice(0, 2 + Math.floor(Math.random() * 3));
+    // Create reactions in the separate Reaction collection (not embedded)
+    const postReactionDocs = [];
+    const reactionTypesList = ["like", "love", "haha", "wow", "sad"];
 
-        post.reactions = reactors.map((u, i) => ({
-          user: u._id,
-          type: reactionTypes[i % reactionTypes.length],
-        }));
-        post.reactionsCount = reactors.length;
-        post.reactionCounts = {
-          like: 0,
-          love: 0,
-          haha: 0,
-          wow: 0,
-          sad: 0,
-          angry: 0,
-        };
-        post.reactions.forEach((r) => {
-          post.reactionCounts[r.type] = (post.reactionCounts[r.type] || 0) + 1;
+    for (const post of posts) {
+      const otherUsers = users.filter(
+        (u) => u._id.toString() !== post.author.toString(),
+      );
+      const shuffled = [...otherUsers].sort(() => 0.5 - Math.random());
+      const reactors = shuffled.slice(0, 2 + Math.floor(Math.random() * 3));
+
+      const counts = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+      for (let i = 0; i < reactors.length; i++) {
+        const type = reactionTypesList[i % reactionTypesList.length];
+        postReactionDocs.push({
+          post: post._id,
+          user: reactors[i]._id,
+          type,
         });
-        return post.save();
-      }),
-    );
+        counts[type] = (counts[type] || 0) + 1;
+      }
+
+      post.reactionCounts = counts;
+      post.reactionsCount = reactors.length;
+      await post.save();
+    }
+    await Reaction.insertMany(postReactionDocs);
 
     // Seed comments
     const comments = await Comment.create([
@@ -170,12 +168,15 @@ export async function GET(request) {
       },
     ]);
 
-    // Add reactions to comments
-    comments[0].reactions = [
-      { user: users[0]._id, type: "like" },
-      { user: users[2]._id, type: "love" },
+    // Create comment reactions in the Reaction collection
+    const commentReactionDocs = [
+      { comment: comments[0]._id, user: users[0]._id, type: "like" },
+      { comment: comments[0]._id, user: users[2]._id, type: "love" },
+      { comment: comments[1]._id, user: users[1]._id, type: "like" },
     ];
-    comments[0].reactionsCount = 2;
+    await Reaction.insertMany(commentReactionDocs);
+
+    // Update denormalized counts on comments
     comments[0].reactionCounts = {
       like: 1,
       love: 1,
@@ -184,8 +185,7 @@ export async function GET(request) {
       sad: 0,
       angry: 0,
     };
-    comments[1].reactions = [{ user: users[1]._id, type: "like" }];
-    comments[1].reactionsCount = 1;
+    comments[0].reactionsCount = 2;
     comments[1].reactionCounts = {
       like: 1,
       love: 0,
@@ -194,6 +194,7 @@ export async function GET(request) {
       sad: 0,
       angry: 0,
     };
+    comments[1].reactionsCount = 1;
     await Promise.all(comments.map((c) => c.save()));
 
     // Add replies to comments
