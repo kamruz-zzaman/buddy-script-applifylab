@@ -111,7 +111,7 @@ export default function LoginPage() {
       <div className="_social_login_wrap">
         <div className="container">
           <div className="row align-items-center">
-            <div className="col-xl-8 col-lg-8 col-md-12 col-sm-12">
+            <div className="col-xl-7 col-lg-7 col-md-12 col-sm-12">
               <div className="_social_login_left">
                 <div className="_social_login_left_image">
                   <Image
@@ -124,7 +124,7 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
-            <div className="col-xl-4 col-lg-4 col-md-12 col-sm-12">
+            <div className="col-xl-5 col-lg-5 col-md-12 col-sm-12">
               <div className="_social_login_content">
                 <div className="_social_login_left_logo _mar_b28">
                   <Image
@@ -204,12 +204,13 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <div className="row">
-                    <div className="col-lg-12 col-md-12 col-xl-12 col-sm-12">
-                      <div className="_social_login_form_btn _mar_t40 _mar_b60">
+                    <div className="d-flex justify-content-center">
+                      <div className="_social_login_form_btn _mar_t40 _mar_b60 w-100">
                         <button
                           type="submit"
                           className="_social_login_form_btn_link _btn1"
                           disabled={loading}
+                          style={{ minWidth: "100%" }}
                         >
                           {loading ? "Logging in..." : "Login now"}
                         </button>

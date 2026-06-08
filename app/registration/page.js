@@ -130,7 +130,7 @@ export default function RegistrationPage() {
       <div className="_social_registration_wrap">
         <div className="container">
           <div className="row align-items-center">
-            <div className="col-xl-8 col-lg-8 col-md-12 col-sm-12">
+            <div className="col-xl-7 col-lg-7 col-md-12 col-sm-12">
               <div className="_social_registration_right">
                 <div className="_social_registration_right_image">
                   <Image
@@ -150,7 +150,7 @@ export default function RegistrationPage() {
                 </div>
               </div>
             </div>
-            <div className="col-xl-4 col-lg-4 col-md-12 col-sm-12">
+            <div className="col-xl-5 col-lg-5 col-md-12 col-sm-12">
               <div className="_social_registration_content">
                 <div className="_social_registration_right_logo _mar_b28">
                   <Image
@@ -287,7 +287,7 @@ export default function RegistrationPage() {
                       <div className="_social_registration_form_btn _mar_t40 _mar_b60">
                         <button
                           type="submit"
-                          className="_social_registration_form_btn_link _btn1"
+                          className="_social_registration_form_btn_link _btn1 w-100"
                           disabled={loading}
                         >
                           {loading ? "Creating account..." : "Create Account"}
