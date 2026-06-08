@@ -190,45 +190,89 @@ export function FeedProvider({ children }) {
     [currentUser],
   );
 
-  // ─── Optimistic: Toggle reaction (counts only, server returns full state) ──
+  // ─── Optimistic: Toggle reaction (full state sync) ────────────────────────
   const togglePostReaction = useCallback(
     async (postId, reactionType = "like") => {
-      // Optimistic: update reaction counts immediately
-      setPosts((prev) =>
-        prev.map((p) => {
+      let previousPosts = null;
+
+      // 1. Snapshot and Update optimistically
+      setPosts((prev) => {
+        previousPosts = prev;
+        return prev.map((p) => {
           if (p._id !== postId) return p;
-          const newReactionCounts = { ...p.reactionCounts };
-          // Simple optimistic toggle — server will correct if needed
-          newReactionCounts[reactionType] =
-            (newReactionCounts[reactionType] || 0) + 1;
+
+          const userId = currentUser?.id;
+          // Check if we already have a reaction from the current user
+          const oldReaction = (p.reactions || []).find(
+            (r) => (r.user?._id || r.user) === userId,
+          );
+          const oldType = oldReaction?.type;
+
+          let newReactions = [...(p.reactions || [])];
+          let newCounts = { ...p.reactionCounts };
+          let newTotal = p.reactionsCount || 0;
+
+          if (oldType === reactionType) {
+            // Remove reaction (toggle off)
+            newReactions = newReactions.filter(
+              (r) => (r.user?._id || r.user) !== userId,
+            );
+            newCounts[oldType] = Math.max(0, (newCounts[oldType] || 0) - 1);
+            newTotal = Math.max(0, newTotal - 1);
+          } else if (oldType) {
+            // Change reaction type
+            newReactions = newReactions.map((r) =>
+              (r.user?._id || r.user) === userId
+                ? { ...r, type: reactionType }
+                : r,
+            );
+            newCounts[oldType] = Math.max(0, (newCounts[oldType] || 0) - 1);
+            newCounts[reactionType] = (newCounts[reactionType] || 0) + 1;
+          } else {
+            // Add new reaction
+            newReactions.push({ user: userId, type: reactionType });
+            newCounts[reactionType] = (newCounts[reactionType] || 0) + 1;
+            newTotal += 1;
+          }
+
           return {
             ...p,
-            reactionCounts: newReactionCounts,
-            reactionsCount: (p.reactionsCount || 0) + 1,
+            reactions: newReactions,
+            reactionCounts: newCounts,
+            reactionsCount: newTotal,
           };
-        }),
-      );
-
-      // Server sync — response contains correct counts
-      const data = await apiFetch(`/api/posts/${postId}/like`, {
-        method: "POST",
-        body: JSON.stringify({ type: reactionType }),
+        });
       });
-      if (data?.success) {
-        // Correct with server state
-        setPosts((prev) =>
-          prev.map((p) =>
-            p._id === postId
-              ? {
-                  ...p,
-                  reactionCounts: data.data.reactionCounts,
-                  reactionsCount: data.data.reactionsCount,
-                }
-              : p,
-          ),
-        );
+
+      // 2. Server sync
+      try {
+        const data = await apiFetch(`/api/posts/${postId}/like`, {
+          method: "POST",
+          body: JSON.stringify({ type: reactionType }),
+        });
+
+        if (data?.success) {
+          // Update with final server state (handles topReactors, etc.)
+          setPosts((current) =>
+            current.map((p) =>
+              p._id === postId
+                ? {
+                    ...p,
+                    reactionCounts: data.data.reactionCounts,
+                    reactionsCount: data.data.reactionsCount,
+                    // If we had a way to refresh topReactions here, we would
+                  }
+                : p,
+            ),
+          );
+        } else {
+          // Revert on logical failure
+          if (previousPosts) setPosts(previousPosts);
+        }
+      } catch (error) {
+        // Revert on network failure
+        if (previousPosts) setPosts(previousPosts);
       }
-      return true;
     },
     [currentUser],
   );

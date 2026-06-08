@@ -176,11 +176,20 @@ async function fetchFeedFromDB(userId, cursor, limit) {
   const COMMENT_PREVIEW = 2;
   const postsWithComments = await Promise.all(
     posts.map(async (post) => {
+      // Fetch top 3 reactions for general display
       const topReactions = await Reaction.find({ post: post._id })
         .sort({ createdAt: -1 })
         .limit(3)
         .populate("user", "firstName lastName")
         .lean();
+
+      // Fetch current user's specific reaction for this post
+      const userReaction = await Reaction.findOne({
+        post: post._id,
+        user: userId,
+      }).lean();
+
+      const reactions = userReaction ? [userReaction] : [];
 
       const totalComments = await Comment.countDocuments({
         post: post._id,
@@ -243,7 +252,7 @@ async function fetchFeedFromDB(userId, cursor, limit) {
         
         comments = roots.slice(0, COMMENT_PREVIEW);
       }
-      return { ...post, comments, totalComments, topReactions };
+      return { ...post, comments, totalComments, topReactions, reactions };
     }),
   );
 

@@ -49,13 +49,14 @@ export async function POST(request, { params }) {
         post.reactionsCount = Math.max(0, (post.reactionsCount || 0) - 1);
       } else {
         // Different reaction — change type
+        const oldType = existing.type;
         existing.type = reactionType;
         await existing.save();
-        post.reactionCounts[existing.type] = Math.max(
+        
+        post.reactionCounts[oldType] = Math.max(
           0,
-          (post.reactionCounts[existing.type] || 0) - 1,
+          (post.reactionCounts[oldType] || 0) - 1,
         );
-        // No need to decrement the old type since we changed it
         post.reactionCounts[reactionType] =
           (post.reactionCounts[reactionType] || 0) + 1;
       }
@@ -67,6 +68,7 @@ export async function POST(request, { params }) {
       post.reactionsCount = (post.reactionsCount || 0) + 1;
     }
 
+    post.markModified("reactionCounts");
     await post.save();
 
     // Invalidate feed cache since reaction counts changed
