@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import Post from "@/lib/models/Post";
 import Comment from "@/lib/models/Comment";
+import Reaction from "@/lib/models/Reaction";
 import cache from "@/lib/utils/cache";
 import cloudinary from "@/lib/cloudinary";
 import {
@@ -9,7 +10,7 @@ import {
   errorResponse,
 } from "@/lib/utils/auth";
 
-// GET - Fetch comments for a post (cursor-based)
+// GET - Fetch comments for a post (hierarchical)
 export async function GET(request, { params }) {
   try {
     const userId = await getCurrentUserId();
@@ -30,53 +31,85 @@ export async function GET(request, { params }) {
       return errorResponse("Not authorized", 403);
     }
 
-    const { searchParams } = new URL(request.url);
-    const limit = Math.min(
-      50,
-      Math.max(1, parseInt(searchParams.get("limit")) || 20),
-    );
-    const cursor = searchParams.get("cursor");
-
-    // Build query with cursor
-    const query = { post: postId, parent: null };
-    if (cursor) {
-      const { default: mongoose } = await import("mongoose");
-      query._id = { $lt: new mongoose.Types.ObjectId(cursor) };
-    }
-
-    const comments = await Comment.find(query)
-      .sort({ _id: -1 })
-      .limit(limit + 1)
+    // Fetch ALL comments for this post to build a tree
+    const allComments = await Comment.find({ post: postId })
+      .sort({ createdAt: 1 })
       .populate("author", "firstName lastName")
       .lean();
 
-    const hasMore = comments.length > limit;
-    if (hasMore) comments.pop();
+    // Fetch user's reactions for all these comments
+    const allCommentIds = allComments.map((c) => c._id);
+    const userReactions = await Reaction.find({
+      user: userId,
+      comment: { $in: allCommentIds },
+    }).lean();
 
-    // For each top-level comment, fetch its replies
-    const commentsWithReplies = await Promise.all(
-      comments.map(async (comment) => {
-        const replies = await Comment.find({ parent: comment._id })
-          .sort({ createdAt: 1 })
-          .populate("author", "firstName lastName")
-          .lean();
-        return { ...comment, replies };
-      }),
-    );
+    const reactionMap = userReactions.reduce((acc, r) => {
+      acc[r.comment.toString()] = r;
+      return acc;
+    }, {});
 
-    const total = await Comment.countDocuments({ post: postId, parent: null });
-    const nextCursor =
-      commentsWithReplies.length > 0
-        ? commentsWithReplies[commentsWithReplies.length - 1]._id
-        : null;
+    // Attach reactions and prepare for tree building
+    const commentsWithReactions = allComments.map((c) => ({
+      ...c,
+      reactions: reactionMap[c._id.toString()] ? [reactionMap[c._id.toString()]] : [],
+      replies: [],
+    }));
+
+    // Build the tree
+    const commentMap = {};
+    const roots = [];
+
+    // First pass: Initialize all comment objects in the map
+    commentsWithReactions.forEach((c) => {
+      commentMap[c._id.toString()] = { ...c, replies: [] };
+    });
+
+    // Second pass: Build the hierarchy
+    commentsWithReactions.forEach((c) => {
+      const commentObj = commentMap[c._id.toString()];
+      if (c.parent) {
+        const parentId = c.parent.toString();
+        const parent = commentMap[parentId];
+        if (parent) {
+          parent.replies.push(commentObj);
+        } else {
+          // If parent is missing from this post's comments, treat as root
+          roots.push(commentObj);
+        }
+      } else {
+        roots.push(commentObj);
+      }
+    });
+
+    // Sort roots by newest first
+    roots.sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    });
+
+    // Ensure all replies are sorted by oldest first (chronological thread)
+    const sortReplies = (comment) => {
+      if (comment.replies && comment.replies.length > 0) {
+        comment.replies.sort((a, b) => {
+          const aTime = new Date(a.createdAt).getTime();
+          const bTime = new Date(b.createdAt).getTime();
+          return aTime - bTime;
+        });
+        comment.replies.forEach(sortReplies);
+      }
+    };
+    roots.forEach(sortReplies);
+
+    const totalRoots = await Comment.countDocuments({ post: postId, parent: null });
+    const totalAll = await Comment.countDocuments({ post: postId });
 
     return successResponse({
-      comments: commentsWithReplies,
+      comments: roots,
       pagination: {
-        limit,
-        nextCursor,
-        hasMore,
-        total,
+        total: totalRoots,
+        totalAll,
       },
     });
   } catch (error) {

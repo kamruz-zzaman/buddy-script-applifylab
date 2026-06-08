@@ -188,23 +188,60 @@ async function fetchFeedFromDB(userId, cursor, limit) {
       });
       let comments = [];
       if (totalComments > 0) {
-        const topComments = await Comment.find({
-          post: post._id,
-          parent: null,
-        })
-          .sort({ createdAt: -1 })
-          .limit(COMMENT_PREVIEW)
+        // Fetch ALL comments for this post to build the hierarchical tree
+        // This ensures all nested layers are available even in preview
+        const allCommentsForPost = await Comment.find({ post: post._id })
+          .sort({ createdAt: 1 })
           .populate("author", "firstName lastName")
           .lean();
-        comments = await Promise.all(
-          topComments.map(async (c) => {
-            const replies = await Comment.find({ parent: c._id })
-              .sort({ createdAt: 1 })
-              .populate("author", "firstName lastName")
-              .lean();
-            return { ...c, replies };
-          }),
-        );
+
+        // Fetch user's reactions for all these comments
+        const commentIds = allCommentsForPost.map((c) => c._id);
+        const userReactions = await Reaction.find({
+          user: userId,
+          comment: { $in: commentIds },
+        }).lean();
+
+        const reactionMap = userReactions.reduce((acc, r) => {
+          acc[r.comment.toString()] = r;
+          return acc;
+        }, {});
+
+        // Build the tree
+        const commentMap = {};
+        allCommentsForPost.forEach((c) => {
+          commentMap[c._id.toString()] = {
+            ...c,
+            reactions: reactionMap[c._id.toString()]
+              ? [reactionMap[c._id.toString()]]
+              : [],
+            replies: [],
+          };
+        });
+
+        const roots = [];
+        allCommentsForPost.forEach((c) => {
+          const commentObj = commentMap[c._id.toString()];
+          if (c.parent) {
+            const parent = commentMap[c.parent.toString()];
+            if (parent) {
+              parent.replies.push(commentObj);
+            } else {
+              roots.push(commentObj);
+            }
+          } else {
+            roots.push(commentObj);
+          }
+        });
+
+        // Sort roots newest first and take preview limit
+        roots.sort((a, b) => {
+          const aTime = new Date(a.createdAt).getTime();
+          const bTime = new Date(b.createdAt).getTime();
+          return bTime - aTime;
+        });
+        
+        comments = roots.slice(0, COMMENT_PREVIEW);
       }
       return { ...post, comments, totalComments, topReactions };
     }),

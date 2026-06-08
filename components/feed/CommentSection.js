@@ -45,19 +45,59 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
   const [showReplyBox, setShowReplyBox] = useState(false);
 
   const handleReaction = async () => {
+    const oldMyReaction = myReaction;
+    const oldCounts = { ...reactionCounts };
+    const oldCount = reactionsCount;
+
+    // Toggle logic: for now, the "Like" button toggles the 'like' type
+    const targetType = "like";
+    let nextMyReaction = null;
+    let nextCounts = { ...reactionCounts };
+    let nextTotal = reactionsCount;
+
+    if (oldMyReaction === targetType) {
+      // Removing reaction
+      nextMyReaction = null;
+      nextCounts[targetType] = Math.max(0, (nextCounts[targetType] || 0) - 1);
+      nextTotal = Math.max(0, nextTotal - 1);
+    } else {
+      // Adding or changing reaction
+      if (oldMyReaction) {
+        // Change: decrement old type
+        nextCounts[oldMyReaction] = Math.max(0, (nextCounts[oldMyReaction] || 0) - 1);
+      } else {
+        // New reaction: increment total
+        nextTotal += 1;
+      }
+      nextMyReaction = targetType;
+      nextCounts[targetType] = (nextCounts[targetType] || 0) + 1;
+    }
+
+    // Apply optimistic update
+    setMyReaction(nextMyReaction);
+    setReactionCounts(nextCounts);
+    setReactionsCount(nextTotal);
+
     try {
       const res = await fetch(`/api/comments/${comment._id}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: myReaction ? myReaction : "like" }),
+        body: JSON.stringify({ type: targetType }),
       });
       const data = await res.json();
-      if (data?.success) {
-        setMyReaction(data.data.myReaction);
-        setReactionCounts(data.data.reactionCounts);
-        setReactionsCount(data.data.reactionsCount);
+      if (!data?.success) {
+        throw new Error("Failed to update reaction");
       }
-    } catch {}
+      // Sync with final server state
+      setMyReaction(data.data.myReaction);
+      setReactionCounts(data.data.reactionCounts);
+      setReactionsCount(data.data.reactionsCount);
+    } catch (error) {
+      // Rollback on failure
+      setMyReaction(oldMyReaction);
+      setReactionCounts(oldCounts);
+      setReactionsCount(oldCount);
+    }
   };
 
   const handleReply = useCallback(
@@ -70,22 +110,45 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
 
   const totalReacts = reactionsCount;
 
+  // Visual optimization: Cap indentation and use vertical lines
+  const MAX_INDENT_DEPTH = 3; // Allow a bit more depth before capping
+  const indentSize = depth > 0 ? 12 : 0;
+  const shouldIndent = depth > 0 && depth <= MAX_INDENT_DEPTH;
+
   return (
     <div
       className="_comment_main"
-      style={{ paddingLeft: depth > 0 ? "30px" : "0" }}
+      style={{
+        paddingLeft: shouldIndent ? `${indentSize}px` : "0",
+        position: "relative",
+        marginBottom: depth === 0 ? "16px" : "8px",
+      }}
     >
-      <div className="_comment_image">
+      {/* Thread line for nested comments */}
+      {depth > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: "6px",
+            top: "-12px", // Start from parent's level
+            bottom: "0",
+            width: "1.5px",
+            background: "#e4e6eb",
+            zIndex: 1,
+          }}
+        />
+      )}
+      <div className="_comment_image" style={{ zIndex: 2, flex: "0 0 32px", width: "32px", height: "32px" }}>
         <Link href="#0" className="_comment_image_link">
           <UserAvatar
             user={comment.author}
-            size={34}
+            size={32}
             className="_comment_img1"
           />
         </Link>
       </div>
-      <div className="_comment_area">
-        <div className="_comment_details">
+      <div className="_comment_area" style={{ zIndex: 2, marginLeft: "12px" }}>
+        <div className="_comment_details" style={{ marginBottom: "25px" }}>
           <div className="_comment_details_top">
             <div className="_comment_name">
               <Link href="#0">
@@ -135,7 +198,7 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
             </div>
           )}
           <div className="_comment_reply">
-            <div className="_comment_reply_num">
+            <div className="_comment_reply_num" style={{ bottom: "-25px" }}>
               <ul className="_comment_reply_list">
                 <li>
                   <span
@@ -143,6 +206,7 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                       cursor: "pointer",
                       color: myReaction ? "#0d6efd" : "#65676b",
                       fontWeight: myReaction ? 600 : 400,
+                      fontSize: "12px",
                     }}
                     onClick={handleReaction}
                   >
@@ -150,27 +214,27 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
                   </span>
                 </li>
                 <li>
-                  <span>.</span>
+                  <span style={{ fontSize: "12px" }}>.</span>
                 </li>
                 <li>
                   <span
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: "pointer", fontSize: "12px" }}
                     onClick={() => setShowReplyBox((s) => !s)}
                   >
                     Reply
                   </span>
                 </li>
                 <li>
-                  <span>.</span>
+                  <span style={{ fontSize: "12px" }}>.</span>
                 </li>
                 <li>
-                  <span>Share</span>
+                  <span style={{ fontSize: "12px" }}>Share</span>
                 </li>
                 <li>
-                  <span>.</span>
+                  <span style={{ fontSize: "12px" }}>.</span>
                 </li>
                 <li>
-                  <span className="_time_link">
+                  <span className="_time_link" style={{ fontSize: "12px" }}>
                     {timeAgo(comment.createdAt)}
                   </span>
                 </li>
@@ -179,11 +243,27 @@ function SingleComment({ comment, postId, onReplyAdded, depth = 0 }) {
           </div>
         </div>
         {showReplyBox && (
-          <CommentBox
-            postId={postId}
-            parentId={comment._id}
-            onCommentAdded={handleReply}
-          />
+          <div style={{ marginTop: "30px" }}>
+            <CommentBox
+              postId={postId}
+              parentId={comment._id}
+              onCommentAdded={handleReply}
+            />
+          </div>
+        )}
+        {/* Recursive rendering of replies */}
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="_nested_comments" style={{ marginTop: "35px" }}>
+            {comment.replies.map((reply) => (
+              <SingleComment
+                key={reply._id}
+                comment={reply}
+                postId={postId}
+                onReplyAdded={onReplyAdded}
+                depth={depth + 1}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -226,7 +306,7 @@ export default function CommentSection({
     }
   }, [postId, hasInitiallyLoaded]);
 
-  // Load all remaining comments with deduplication (avoids page-alignment issues with embedded comments)
+  // Load all remaining comments
   const loadMorePage = useCallback(async () => {
     if (loadingMore) return;
     setLoadingMore(true);
@@ -236,13 +316,7 @@ export default function CommentSection({
       );
       const data = await res.json();
       if (data?.success) {
-        setAllComments((prev) => {
-          const existingIds = new Set(prev.map((c) => c._id));
-          const newOnes = data.data.comments.filter(
-            (c) => !existingIds.has(c._id),
-          );
-          return [...prev, ...newOnes];
-        });
+        setAllComments(data.data.comments); // Hierarchical API returns whole tree now
         setTotalComments(data.data.pagination?.total || 0);
       }
     } catch {
@@ -265,20 +339,31 @@ export default function CommentSection({
 
   const handleReplyAdded = useCallback((newComment) => {
     if (!newComment) return;
-    // Optimistically add the reply to the correct parent comment
-    const parentId = String(newComment.parent);
-    setAllComments((prev) =>
-      prev.map((c) => {
-        if (String(c._id) === parentId) {
+
+    const addToTree = (comments) => {
+      return comments.map((c) => {
+        if (String(c._id) === String(newComment.parent)) {
           return {
             ...c,
-            replies: [...(c.replies || []), newComment],
+            replies: [...(c.replies || []), { ...newComment, replies: [] }],
+          };
+        }
+        if (c.replies) {
+          return {
+            ...c,
+            replies: addToTree(c.replies),
           };
         }
         return c;
-      }),
-    );
-    setTotalComments((t) => t + 1);
+      });
+    };
+
+    setAllComments((prev) => addToTree(prev));
+    // Note: totalComments counts roots for the "View previous" button, 
+    // so we only increment it if it's a root comment.
+    if (!newComment.parent) {
+      setTotalComments((t) => t + 1);
+    }
   }, []);
 
   // Add optimistic comment immediately
@@ -287,7 +372,7 @@ export default function CommentSection({
       setAllComments((prev) => {
         if (prev.some((c) => c._id === optimisticComment.comment._id))
           return prev;
-        return [optimisticComment.comment, ...prev];
+        return [{ ...optimisticComment.comment, replies: [] }, ...prev];
       });
       setTotalComments((t) => t + 1);
       setLoading(false);
@@ -310,7 +395,7 @@ export default function CommentSection({
 
   return (
     <div className="_timline_comment_main">
-      {/* View previous comments — progressive pagination */}
+      {/* View previous comments */}
       {remainingCount > 0 && (
         <div style={{ padding: "4px 24px 8px" }}>
           <button
@@ -334,22 +419,12 @@ export default function CommentSection({
       )}
 
       {allComments.map((comment) => (
-        <div key={comment._id}>
-          <SingleComment
-            comment={comment}
-            postId={postId}
-            onReplyAdded={handleReplyAdded}
-          />
-          {comment.replies?.map((reply) => (
-            <SingleComment
-              key={reply._id}
-              comment={reply}
-              postId={postId}
-              onReplyAdded={handleReplyAdded}
-              depth={1}
-            />
-          ))}
-        </div>
+        <SingleComment
+          key={comment._id}
+          comment={comment}
+          postId={postId}
+          onReplyAdded={handleReplyAdded}
+        />
       ))}
     </div>
   );
