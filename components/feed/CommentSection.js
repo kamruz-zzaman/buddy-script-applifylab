@@ -263,11 +263,25 @@ export default function CommentSection({
     }
   }, [fetchInitial, refreshKey, initialComments, initialTotal]);
 
-  const handleReplyAdded = useCallback(() => {
-    // For replies, just reload current state — keep it simple
-    setLoading(true);
-    fetchInitial();
-  }, [fetchInitial]);
+  const handleReplyAdded = useCallback(
+    (newComment) => {
+      if (!newComment) return;
+      // Optimistically add the reply to the correct parent comment
+      setAllComments((prev) =>
+        prev.map((c) => {
+          if (c._id === newComment.parent) {
+            return {
+              ...c,
+              replies: [...(c.replies || []), newComment],
+            };
+          }
+          return c;
+        }),
+      );
+      setTotalComments((t) => t + 1);
+    },
+    [],
+  );
 
   // Add optimistic comment immediately
   useEffect(() => {
